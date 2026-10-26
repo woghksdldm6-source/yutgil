@@ -1,0 +1,1895 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="윷놀이로 혼자 일곱 판 원정을 떠나거나, 친구들과 방을 만들어 함께 겨루는 웹 게임">
+<title>윷길</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Nanum+Brush+Script&family=Song+Myung&display=swap">
+<style>
+/* Layout: a yut-nori table. The mat is the board; the other players sit above it, you sit below it, and the throwing tray, charms and room sit beside it. */
+:root{
+  --bg:#E6E9F0;
+  --surface:#F7F8FB;
+  --ink:#1A1E2E;
+  --muted:#5A6177;
+  --rule:#CBD0DC;
+  --board:#E7DCC0;
+  --weave:#DACCA6;
+  --board-line:#6E5A35;
+  --node:#F5EEDC;
+  --node-ring:#6E5A35;
+  --s0:#1F4FA8;
+  --s1:#C2362B;
+  --s2:#2B7A4B;
+  --s3:#7446A8;
+  --accent:#1F4FA8;
+  --accent-ink:#FFFFFF;
+  --seal:#B3362B;
+  --seal-ink:#FFF6EC;
+  --gold:#D9A21B;
+  --gold-ink:#8C6100;
+  --wood-flat:#EBCB91;
+  --wood-edge:#B98F4E;
+  --wood-mark:#9A6E33;
+  --wood-round:#9A6431;
+  --wood-round-dark:#6B4220;
+  --f-title:"Song Myung","Gowun Batang",serif;
+  --f-body:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-call:"Nanum Brush Script","Song Myung",cursive;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1120; --surface:#161A2D; --ink:#E8EAF2; --muted:#9CA3BC; --rule:#2C3253;
+    --board:#1D2240; --weave:#232A4C; --board-line:#B8A574; --node:#232949; --node-ring:#C9B67F;
+    --s0:#6C98F2; --s1:#EF6455; --s2:#4FBF80; --s3:#A783E0;
+    --accent:#6C98F2; --accent-ink:#0B1530; --seal:#C9473A; --seal-ink:#FFF6EC;
+    --gold:#F2C14E; --gold-ink:#F2C14E;
+    --wood-flat:#D9B97F; --wood-edge:#9C7840; --wood-mark:#7E5A28; --wood-round:#7D5228; --wood-round-dark:#4F3218;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1120; --surface:#161A2D; --ink:#E8EAF2; --muted:#9CA3BC; --rule:#2C3253;
+  --board:#1D2240; --weave:#232A4C; --board-line:#B8A574; --node:#232949; --node-ring:#C9B67F;
+  --s0:#6C98F2; --s1:#EF6455; --s2:#4FBF80; --s3:#A783E0;
+  --accent:#6C98F2; --accent-ink:#0B1530; --seal:#C9473A; --seal-ink:#FFF6EC;
+  --gold:#F2C14E; --gold-ink:#F2C14E;
+  --wood-flat:#D9B97F; --wood-edge:#9C7840; --wood-mark:#7E5A28; --wood-round:#7D5228; --wood-round-dark:#4F3218;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg)}
+:root{padding-top:env(safe-area-inset-top, 0px);padding-bottom:env(safe-area-inset-bottom, 0px)}
+body{
+  margin:0;
+  color:var(--ink);
+  font-family:var(--f-body);
+  font-size:15px;
+  line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:18px 40px;
+  -webkit-tap-highlight-color:transparent;
+}
+button{font-family:inherit}
+
+.top{max-width:900px;margin:0 auto 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 18px}
+.brand h1{font-family:var(--f-title);font-weight:400;font-size:clamp(32px,7vw,42px);line-height:1;margin:0;letter-spacing:0.02em}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.road{list-style:none;margin:0;padding:0;display:flex;align-items:flex-start}
+.road li{display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;width:52px}
+.road li + li::before{content:"";position:absolute;top:7px;right:calc(50% + 9px);width:34px;height:2px;background:var(--rule)}
+.road li.done + li::before,.road li.done::before{background:var(--accent)}
+.road .dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--muted);background:var(--surface);box-sizing:border-box}
+.road li.done .dot{background:var(--accent);border-color:var(--accent)}
+.road li.now .dot{border-color:var(--gold);background:var(--gold);box-shadow:0 0 0 4px color-mix(in srgb, var(--gold) 28%, transparent)}
+.road .nm{font-size:11px;color:var(--muted);white-space:nowrap}
+.road li.now .nm{color:var(--ink);font-weight:700}
+@media (max-width:620px){.road li{width:34px}.road li + li::before{width:16px}.road .nm{display:none}}
+.roombadge{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.roombadge b{font-family:var(--f-title);font-weight:400;font-size:22px;color:var(--ink);letter-spacing:0.12em}
+
+.layout{max-width:900px;margin:0 auto;display:grid;grid-template-columns:minmax(0,500px) minmax(0,1fr);gap:16px 24px;align-items:start}
+@media (max-width:820px){.layout{grid-template-columns:minmax(0,1fr)}.boardcol,.side{max-width:520px;width:100%;margin:0 auto}}
+.boardcol{display:flex;flex-direction:column;gap:8px;min-width:0}
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+.seats{display:flex;flex-direction:column;gap:6px}
+.bar,.seatrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--rule);border-radius:12px;min-width:0}
+.seatrow.turn{border-color:var(--gold);box-shadow:0 0 0 2px color-mix(in srgb, var(--gold) 30%, transparent)}
+.seatrow .turnbadge{font-size:12px;font-weight:700;color:var(--gold-ink);white-space:nowrap}
+.who{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.who-text{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.who-text b{font-family:var(--f-title);font-weight:400;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trait{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tok{width:18px;height:18px;border-radius:50%;flex:none;box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px currentColor}
+.tok.s0{background:var(--s0);color:var(--s0)}
+.tok.s1{background:var(--s1);color:var(--s1)}
+.tok.s2{background:var(--s2);color:var(--s2)}
+.tok.s3{background:var(--s3);color:var(--s3)}
+.counts{display:flex;gap:10px;font-size:13px;color:var(--muted);white-space:nowrap}
+.counts b{color:var(--ink);font-variant-numeric:tabular-nums}
+.enter{display:inline-flex;align-items:center;gap:8px;font-size:14px;padding:7px 12px;border-radius:99px;border:1.5px solid var(--rule);background:var(--bg);color:var(--ink);cursor:pointer;white-space:nowrap}
+.enter:disabled{cursor:default;opacity:.6}
+.enter.movable{border-color:var(--gold);animation:glow 1.2s ease-in-out infinite}
+.enter.selected{border-color:var(--gold);background:color-mix(in srgb, var(--gold) 20%, var(--surface));animation:none}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb, var(--gold) 0%, transparent)}50%{box-shadow:0 0 0 4px color-mix(in srgb, var(--gold) 35%, transparent)}}
+
+.boardwrap{position:relative;width:100%;max-width:100%;aspect-ratio:1/1;border-radius:16px;overflow:hidden;border:1px solid var(--rule);
+  background-color:var(--board);
+  background-image:repeating-linear-gradient(45deg, var(--weave) 0 2px, transparent 2px 10px),repeating-linear-gradient(-45deg, var(--weave) 0 2px, transparent 2px 10px)}
+#board{display:block;width:100%;height:100%;user-select:none;-webkit-user-select:none}
+#board .ln{stroke:var(--board-line);stroke-width:.9;fill:none;stroke-linecap:round}
+#board .nd{fill:var(--node);stroke:var(--node-ring);stroke-width:.7}
+#board .nd.big{stroke-width:1.1}
+#board .lbl{font-size:2.7px;fill:var(--board-line);font-family:var(--f-body)}
+#board .arrow{fill:var(--board-line)}
+#board .trap path{stroke:var(--s1);stroke-width:1.1;stroke-linecap:round}
+#board .trap circle{fill:color-mix(in srgb, var(--s1) 16%, transparent);stroke:var(--s1);stroke-width:.5;stroke-dasharray:1 .8}
+#board .pv-path{stroke:var(--gold);stroke-width:1.5;stroke-dasharray:2 1.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+#board .pv-dest{fill:color-mix(in srgb, var(--gold) 22%, transparent);stroke:var(--gold);stroke-width:1.2;stroke-dasharray:2 1.4;cursor:pointer}
+#board .pv-label{font-size:3.6px;fill:var(--gold-ink);font-family:var(--f-body);font-weight:700;paint-order:stroke;stroke:var(--board);stroke-width:1.2px}
+#board .flash{fill:none;stroke:var(--s1);stroke-width:1.2}
+.piece{transition:transform .14s ease-out}
+.piece .hit{fill:transparent}
+.piece .body{stroke:var(--surface);stroke-width:.9}
+.piece.s0 .body{fill:var(--s0)}
+.piece.s1 .body{fill:var(--s1)}
+.piece.s2 .body{fill:var(--s2)}
+.piece.s3 .body{fill:var(--s3)}
+.piece .eye{fill:var(--surface);opacity:.55}
+.piece .ring{fill:none;stroke:var(--gold);stroke-width:1.1;opacity:0}
+.piece.movable{cursor:pointer}
+.piece.movable .ring{opacity:1;animation:ringpulse 1.1s ease-in-out infinite}
+.piece.selected .ring{opacity:1;stroke-width:1.6;animation:none}
+.piece .cnt{font-size:3px;font-weight:700;fill:var(--ink);font-family:var(--f-body);paint-order:stroke;stroke:var(--board);stroke-width:1px}
+@keyframes ringpulse{0%,100%{stroke-opacity:1}50%{stroke-opacity:.25}}
+
+.call{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-family:var(--f-call);font-size:clamp(70px,20vw,120px);line-height:1;color:var(--ink);opacity:0;transform:scale(.85);transition:opacity .16s, transform .16s;text-shadow:0 0 14px var(--board),0 0 4px var(--board)}
+.call.show{opacity:1;transform:scale(1)}
+.call.hot{color:var(--gold-ink)}
+.call.back{color:var(--s1)}
+.toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 20px);text-align:center;background:var(--ink);color:var(--surface);font-size:13px;padding:7px 13px;border-radius:14px;pointer-events:none;line-height:1.4}
+
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel.links{flex-direction:row;flex-wrap:wrap;gap:4px 18px;padding:10px 14px}
+.panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.panel-head h2{font-family:var(--f-title);font-weight:400;font-size:20px;margin:0}
+.score{font-size:13px;color:var(--muted)}
+.score b{font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
+
+.tray{display:flex;align-items:center;justify-content:center;gap:12px;height:84px;border-radius:12px;background:var(--board);background-image:repeating-linear-gradient(45deg, var(--weave) 0 2px, transparent 2px 10px)}
+.stick{width:15px;height:66px;border-radius:8px;position:relative;box-sizing:border-box}
+.stick.flat{background:var(--wood-flat);box-shadow:inset 0 0 0 1px var(--wood-edge)}
+.stick.flat::after{content:"";position:absolute;left:4px;right:4px;top:15px;bottom:15px;background:repeating-linear-gradient(180deg, var(--wood-mark) 0 2px, transparent 2px 8px);border-radius:2px;opacity:.75}
+.stick.round{background:linear-gradient(90deg, var(--wood-round-dark), var(--wood-round) 45%, var(--wood-round-dark))}
+.stick.marked.flat::before{content:"";position:absolute;left:50%;top:5px;width:7px;height:7px;margin-left:-3.5px;border-radius:50%;background:var(--s1)}
+.stick.tumble{animation:tumble .43s ease-in-out}
+.stick:nth-child(2).tumble{animation-delay:.03s}
+.stick:nth-child(3).tumble{animation-delay:.06s}
+.stick:nth-child(4).tumble{animation-delay:.02s}
+@keyframes tumble{0%{transform:translateY(0) rotate(0)}45%{transform:translateY(-20px) rotate(170deg)}100%{transform:translateY(0) rotate(360deg)}}
+.status{margin:0;font-size:14px;min-height:1.55em}
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-height:38px;align-items:center}
+.chips .none{font-size:13px;color:var(--muted)}
+.chip{display:inline-flex;align-items:baseline;gap:5px;padding:5px 12px;border-radius:99px;border:1.5px solid var(--rule);background:var(--bg);color:var(--ink);cursor:pointer;font-size:14px}
+.chip b{font-family:var(--f-title);font-weight:400;font-size:19px}
+.chip small{color:var(--muted);font-size:12px}
+.chip.hot b{color:var(--gold-ink)}
+.chip.back b{color:var(--s1)}
+.chip.theirs{border-style:dashed}
+.chip[aria-pressed="true"]{border-color:var(--gold);background:color-mix(in srgb, var(--gold) 20%, var(--surface))}
+.chip:disabled{cursor:default}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font-family:var(--f-title);font-size:18px;border-radius:999px;padding:11px 18px;border:1.5px solid transparent;cursor:pointer;line-height:1.1;color:var(--ink);background:transparent}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btnrow .btn.primary{flex:1 1 160px}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn.ghost:hover{background:var(--bg)}
+.btn.small{font-size:15px;padding:8px 14px}
+.btn:disabled{opacity:.5;cursor:default;filter:none}
+.btn.warn{border-color:var(--s1);color:var(--s1)}
+.btn:focus-visible,.chip:focus-visible,.enter:focus-visible,.offer:focus-visible,.seg button:focus-visible,.linkbtn:focus-visible,input:focus-visible{outline:3px solid color-mix(in srgb, var(--gold) 60%, transparent);outline-offset:2px}
+
+.charms{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.charms li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:start}
+.seal{grid-row:span 2;width:30px;height:30px;border-radius:6px;background:var(--seal);color:var(--seal-ink);display:grid;place-items:center;font-family:var(--f-title);font-size:15px}
+.seal.s0{background:var(--s0)}.seal.s1{background:var(--s1)}.seal.s2{background:var(--s2)}.seal.s3{background:var(--s3)}
+.charms b{font-weight:700;font-size:14px}
+.charms span.d{font-size:12.5px;color:var(--muted);line-height:1.45}
+.charms .empty{display:block;font-size:13px;color:var(--muted)}
+.linkbtn{background:none;border:0;padding:4px 0;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px;cursor:pointer;align-self:flex-start}
+.panel.links{align-items:center}
+.toggle{display:inline-flex;align-items:center;gap:7px;background:none;border:0;padding:4px 0;color:var(--ink);font-size:13px;cursor:pointer}
+.toggle .sw{width:28px;height:16px;border-radius:99px;background:var(--rule);position:relative;transition:background .15s}
+.toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--surface);transition:transform .15s}
+.toggle[aria-pressed="true"] .sw{background:var(--accent)}
+.toggle[aria-pressed="true"] .sw::after{transform:translateX(12px)}
+.toggle:focus-visible{outline:3px solid color-mix(in srgb, var(--gold) 60%, transparent);outline-offset:2px;border-radius:6px}
+.share{display:flex;gap:8px;min-width:0}
+.netline{margin:0;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.netdot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--rule)}
+.netdot.ok{background:var(--s2)}
+.netdot.part{background:var(--gold)}
+.netdot.slow{background:var(--s1)}
+
+.modal{position:fixed;inset:0;z-index:20;display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;align-items:center;overflow:auto;
+  padding-top:max(16px, env(safe-area-inset-top, 0px));padding-bottom:max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  background:color-mix(in srgb, var(--bg) 72%, transparent);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.sheet{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px;box-shadow:0 18px 40px -18px color-mix(in srgb, var(--ink) 45%, transparent)}
+.sheet h2{font-family:var(--f-title);font-weight:400;font-size:28px;line-height:1.15;margin:0;text-wrap:balance}
+.sheet p{margin:0}
+.eyebrow{font-size:12px;letter-spacing:.06em;color:var(--muted)}
+.lead{font-size:14.5px}
+.fine{font-size:12.5px;color:var(--muted)}
+.err{font-size:13.5px;color:var(--s1);font-weight:700}
+.err:empty{display:none}
+.offers{display:grid;gap:8px}
+.offer{text-align:left;color:var(--ink);background:var(--bg);border:1.5px solid var(--rule);border-radius:12px;padding:11px 14px;cursor:pointer;display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 12px;align-items:start;font-size:inherit}
+.offer:hover{border-color:var(--gold)}
+.tiertag{display:inline-block;margin-left:8px;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;vertical-align:2px;background:var(--rule);color:var(--muted)}
+.offer.tier-2{border-color:color-mix(in srgb, var(--s0) 55%, var(--rule))}
+.offer.tier-2 .tiertag{background:color-mix(in srgb, var(--s0) 18%, transparent);color:var(--s0)}
+.offer.tier-3{border-color:var(--gold);background:color-mix(in srgb, var(--gold) 10%, var(--bg))}
+.offer.tier-3 .tiertag{background:var(--gold);color:var(--surface)}
+.offer.tier-catchup{border-color:color-mix(in srgb, var(--s1) 55%, var(--rule))}
+.offer.tier-catchup .tiertag{background:color-mix(in srgb, var(--s1) 18%, transparent);color:var(--s1)}
+.offer b{font-size:15.5px}
+.offer .d{font-size:13px;color:var(--muted);line-height:1.45}
+.big{font-family:var(--f-title);font-size:54px;line-height:1;font-variant-numeric:tabular-nums}
+.big small{font-size:20px;color:var(--muted);margin-left:4px}
+.actions{display:flex;flex-direction:column;gap:8px}
+.rules{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.rules b{font-family:var(--f-title);font-weight:400;font-size:16px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:8px}
+input{flex:1;min-width:0;font:inherit;font-size:16px;padding:9px 12px;border-radius:10px;border:1px solid var(--rule);background:var(--bg);color:var(--ink)}
+input.code{text-transform:uppercase;letter-spacing:.2em;font-family:var(--f-title)}
+.divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--rule)}
+.roomcode{font-family:var(--f-title);font-size:40px;letter-spacing:.18em;line-height:1}
+.plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.plist li{display:flex;align-items:center;gap:10px;font-size:15px}
+.plist .tag{font-size:12px;color:var(--muted)}
+.plist .ok{margin-left:auto;font-size:12.5px;color:var(--muted)}
+.plist .ok.done{color:var(--s2);font-weight:700}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px}
+.seg{display:flex;background:var(--bg);border-radius:99px;padding:3px;gap:2px}
+.seg button{font-size:13.5px;border:0;background:transparent;color:var(--muted);padding:5px 12px;border-radius:99px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:700;box-shadow:0 1px 2px color-mix(in srgb, var(--ink) 18%, transparent)}
+.seg button:disabled{cursor:default}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>윷길</h1>
+    <p id="tagline">윷놀이 일곱 판, 부적을 모으며 끝까지</p>
+  </div>
+  <div class="topright">
+    <ol class="road" id="road" aria-label="판 진행"></ol>
+    <div class="roombadge" id="roomBadge" hidden>방 <b id="roomBadgeCode"></b></div>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="boardcol" aria-label="윷판">
+    <div class="seats" id="seats"></div>
+    <div class="boardwrap">
+      <svg id="board" viewBox="0 0 100 100" role="img" aria-label="윷판. 오른쪽 아래 참먹이에서 출발해 시계 반대 방향으로 돌아 다시 참먹이로 들어오면 골인이에요."></svg>
+      <div class="call" id="call" aria-hidden="true"></div>
+      <div class="toast" id="toast" role="status" hidden></div>
+    </div>
+    <div class="bar">
+      <div class="who">
+        <span class="tok s0" id="meTok" aria-hidden="true"></span>
+        <div class="who-text"><b id="meName">나</b><span class="trait">골인 <span id="meHome">0</span>/<span id="mePieces">3</span></span></div>
+      </div>
+      <button class="enter" id="enterBtn" type="button" disabled>새 말 내보내기 · 대기 <b id="meWait">3</b></button>
+    </div>
+  </section>
+
+  <section class="side">
+    <div class="panel">
+      <div class="tray" aria-hidden="true">
+        <div class="stick marked flat"></div><div class="stick round"></div><div class="stick flat"></div><div class="stick round"></div>
+      </div>
+      <p class="status" id="status" aria-live="polite">시작을 기다리는 중이에요.</p>
+      <div class="chips" id="chips"></div>
+      <div class="btnrow">
+        <button class="btn primary" id="mainBtn" type="button" disabled>윷 던지기</button>
+        <button class="btn ghost" id="rerollBtn" type="button" hidden>다시 던지기 <span id="rerollN">0</span></button>
+      </div>
+      <button class="btn ghost small" id="skipBtn" type="button" hidden>이 차례 넘기기</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2 id="charmTitle">내 부적</h2><span class="score" id="scoreBox">점수 <b id="scoreV">0</b></span></div>
+      <ul class="charms" id="charms"></ul>
+    </div>
+
+    <div class="panel" id="roomPanel" hidden>
+      <div class="panel-head"><h2>방 <span id="rpCode"></span></h2></div>
+      <div class="share"><input id="rpLink" readonly aria-label="초대 링크"><button class="btn ghost small" id="rpCopy" type="button">링크 복사</button></div>
+      <p class="netline" id="rpNet"><span class="netdot" id="rpDot"></span><span id="rpNetText"></span></p>
+      <button class="linkbtn" id="rpLeave" type="button">방 나가기</button>
+    </div>
+
+    <div class="panel links">
+      <button class="toggle" id="musicBtn" type="button" aria-pressed="true"><span class="sw" aria-hidden="true"></span>배경음악</button>
+      <button class="toggle" id="sfxBtn" type="button" aria-pressed="true"><span class="sw" aria-hidden="true"></span>효과음</button>
+      <button class="linkbtn" id="rulesBtn" type="button">규칙 보기</button>
+      <button class="linkbtn" id="homeBtn" type="button">처음 화면</button>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="modal" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+
+<script defer src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const reduceMotion = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)').matches : false;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const SVGNS = 'http://www.w3.org/2000/svg';
+function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+function lsDel(k){ try { localStorage.removeItem(k); } catch(e){} }
+function josa(w, a, b){
+  const last = w.charAt(w.length - 1), c = w.charCodeAt(w.length - 1);
+  if (c >= 0xAC00 && c <= 0xD7A3) return w + (((c - 0xAC00) % 28) ? a : b);
+  if (/[0-9]/.test(last)) return w + ('013678'.includes(last) ? a : b);   // 영·일·삼·육·칠·팔은 받침이 있어요
+  return w + (a === b ? a : a + '(' + b + ')');
+}
+const fmt = n => Number(n).toLocaleString('ko-KR');
+
+/*CORE-START*/
+// ---------- 윷판 규칙 (혼자 하기와 친구와 하기가 함께 씀) ----------
+const OUTER = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,0];
+const FROM5 = [20,21,22,23,24,15,16,17,18,19,0];
+const FROM10 = [25,26,22,27,28,0];
+const FROM22 = [27,28,0];
+const WAIT = -1, HOME = 99;
+const BRANCH = new Set([5,10,22]);
+const LAST = new Set([16,17,18,19,27,28]);
+const STEP = {'빽도':-1,'도':1,'개':2,'걸':3,'윷':4,'모':5};
+const KEYS = ['빽도','도','개','걸','윷','모'];
+
+const UPG = {
+  reroll:  { name:'다시 던지기', seal:'再', desc:'판마다 2번, 고른 결과를 다시 던질 수 있어요.', stack:true, tier:1 },
+  shortcut:{ name:'지름길 달인', seal:'捷', desc:'모서리와 한가운데를 지나가기만 해도 지름길로 꺾어요.', tier:3 },
+  piggy:   { name:'업기 가속', seal:'負', desc:'두 개 이상 업힌 말은 1칸 더 가요.', tier:1 },
+  chain:   { name:'잡기 연쇄', seal:'連', desc:'상대 말을 잡으면 40% 확률로 1번 더 던져요. (잡으면 원래 1번 더 던지니, 터지면 모두 2번)', tier:1 },
+  moCharm: { name:'모 부적', seal:'모', desc:'모가 나올 확률이 늘어요. 겹쳐 가질 수 있어요.', stack:true, tier:2 },
+  yutCharm:{ name:'윷 부적', seal:'윷', desc:'윷이 나올 확률이 늘어요. 겹쳐 가질 수 있어요.', stack:true, tier:1 },
+  noBack:  { name:'빽도 봉인', seal:'封', desc:'내 윷에서는 빽도 대신 걸이 나와요.', tier:1 },
+  quickDo: { name:'날쌘 도', seal:'疾', desc:'도가 나오면 1칸이나 2칸 중 골라서 가요. 도 결과를 한 번 더 누르면 바뀌어요.', tier:1 },
+  geol:    { name:'걸 부적', seal:'걸', desc:'걸이 나오면 25% 확률로 한 번 더 던져요.', tier:2 },
+  sprint:  { name:'막판 스퍼트', seal:'走', desc:'골인 직전 길(아래쪽 줄과 마지막 대각선)에 있는 말은 2칸 더 가요. 마지막 남은 말은 어디서든 1칸 더 가요.', tier:1 },
+  trap:    { name:'함정 칸', seal:'穽', desc:'판마다 함정 2개를 깔아요. 상대 말이 멈추면 출발점으로 돌아가요.', stack:true, tier:2 },
+  hex:     { name:'견제 부적', seal:'牽', desc:'상대의 윷과 모가 나올 확률이 절반이 돼요.', tier:2 },
+  head:    { name:'출발 신호', seal:'先', desc:'판이 시작되면 내 말 하나가 걸 자리에서 출발해요.', tier:1 },
+  life:    { name:'두 번째 기회', seal:'命', desc:'판에서 지면 그 판을 한 번 더 할 수 있어요. 쓰면 사라져요.', stack:true, tier:2 },
+  // 역전 부적: 친구와 하기 증강 라운드에서 가장 뒤처진 사람에게만 나와요.
+  comeback:{ name:'역전의 윷가락', seal:'逆', desc:'윷과 모가 나올 확률이 늘어요.', catchup:true, stack:true },
+  express: { name:'급행', seal:'急', desc:'모든 말이 앞으로 갈 때 1칸 더 가요.', catchup:true },
+  payback: { name:'설욕', seal:'雪', desc:'내 말이 잡힐 때마다 내 다음 차례에 한 번 더 던져요.', catchup:true, stack:true },
+  double:  { name:'연타', seal:'倍', desc:'윷이나 모가 나오면 50% 확률로 1번 더 던져요. (터지면 모두 2번)', catchup:true }
+};
+// 부적 세기 조절값 (확률형 부적의 발동 확률 등)
+const TUNE = { geolMode:'extra', geolP:0.25, chainP:0.4, doubleP:0.5, comeback:1, sprint:2, sprintLate:1, noBackTo:'걸' };
+// 등급별 가중치: 일반 3, 희귀 2, 전설 1 (후보 3개를 이 비율로 뽑아요)
+const TIER_W = { 1:3, 2:2, 3:1 };
+const TIER_NAME = { 1:'일반', 2:'희귀', 3:'전설' };
+function weightedPick(pool, n, rnd){
+  const a = pool.slice(), out = [];
+  while (out.length < n && a.length){
+    let tot = 0; for (const id of a) tot += TIER_W[(UPG[id] && UPG[id].tier) || 1];
+    let r = rnd()*tot, k = 0;
+    for (; k < a.length - 1; k++){ r -= TIER_W[(UPG[a[k]] && UPG[a[k]].tier) || 1]; if (r < 0) break; }
+    out.push(a.splice(k, 1)[0]);
+  }
+  return out;
+}
+const MULTI_POOL = ['reroll','shortcut','piggy','chain','moCharm','yutCharm','noBack','quickDo','geol','sprint','hex'];
+const CATCHUP_POOL = ['comeback','express','payback','double'];
+const STAGES = [
+  { name:'동네 꼬마',   trait:'아직 윷놀이가 서툴러요.',                      up:{},                                         noise:30, capW:1.0 },
+  { name:'마을 장정',   trait:'잡을 수 있으면 무조건 잡으러 와요.',            up:{},                                         noise:14, capW:2.0 },
+  { name:'장터 노름꾼', trait:'윷과 모가 유난히 잘 나와요.',                   up:{ yutCharm:1, moCharm:1 },                  noise:11, capW:1.2 },
+  { name:'서당 훈장',   trait:'수를 잘 읽고, 걸이 나오면 한 번 더 던져요.',     up:{ geol:1 },                                 noise:5,  capW:1.2 },
+  { name:'도깨비',      trait:'지름길을 꿰고 있고, 말 하나가 앞서 출발해요.',   up:{ shortcut:1, head:1 },                     noise:6,  capW:1.3 },
+  { name:'사또',        trait:'판마다 2번 다시 던지고, 잡으면 가끔 한 번 더 던져요.',  up:{ reroll:1, chain:1 },                      noise:4,  capW:1.4 },
+  { name:'산신령',      trait:'지름길, 다시 던지기, 윷·모 부적을 모두 가졌어요.', up:{ shortcut:1, reroll:1, yutCharm:1, moCharm:1 }, noise:2, capW:1.4 }
+];
+
+function routeFrom(n){
+  if (n === WAIT) return OUTER;
+  if (n === 5) return FROM5;
+  if (n === 10) return FROM10;
+  if (n === 22) return FROM22;
+  let i;
+  if ((i = OUTER.indexOf(n)) >= 0) return OUTER.slice(i + 1);
+  if ((i = FROM5.indexOf(n)) >= 0) return FROM5.slice(i + 1);
+  if ((i = FROM10.indexOf(n)) >= 0) return FROM10.slice(i + 1);
+  return [0];
+}
+function walk(n, steps, master){
+  let route = routeFrom(n), i = 0; const vis = [];
+  for (let s = 0; s < steps; s++){
+    const nx = route[i++];
+    if (nx === 0 || nx === undefined){ vis.push(0); return { end:HOME, vis }; }
+    vis.push(nx);
+    if (master && s < steps - 1 && BRANCH.has(nx)){ route = routeFrom(nx); i = 0; }
+  }
+  return { end:vis[vis.length - 1], vis };
+}
+function dist(n){ if (n === HOME) return 0; if (n === WAIT) return 21; const r = routeFrom(n); const i = r.indexOf(0); return i < 0 ? 21 : i + 1; }
+
+let G = null;              // 지금 판의 상태 (친구와 하기에서는 이 객체가 그대로 서버에 저장돼요)
+let CH = () => ({});       // 자리별 부적 목록을 돌려주는 함수
+function __setCtx(g, ch){ G = g; CH = ch; }
+const cnt = (seat, id) => (CH(seat)[id] || 0);
+const hasC = (seat, id) => cnt(seat, id) > 0;
+const pcs = seat => G.pieces.filter(p => p.seat === seat);
+const atN = (seat, node) => G.pieces.filter(p => p.seat === seat && p.node === node);
+const othersAt = (seat, node) => G.pieces.filter(p => p.seat !== seat && p.node === node);
+const waitingOf = seat => atN(seat, WAIT);
+function seatsExcept(seat){ const a = []; for (let s = 0; s < G.n; s++) if (s !== seat) a.push(s); return a; }
+
+function newGame(n, k){
+  const pieces = [];
+  for (let s = 0; s < n; s++) for (let i = 0; i < k; i++) pieces.push({ id:'s' + s + 'p' + i, seat:s, node:WAIT, trail:[] });
+  return { gid:String(Date.now()) + Math.floor(Math.random()*1e6), n, nPieces:k, pieces, turn:0, throwsLeft:1, chips:[], chipSeq:0,
+    rerollUsed:Array(n).fill(0), traps:[], trapOwner:-1, seq:0, events:[], winner:null,
+    charms:Array.from({ length:n }, () => ({})), augmentsOn:false, augRound:0, augment:null, bonus:Array(n).fill(0) };
+}
+function weights(seat){
+  const w = { '빽도':1, '도':3, '개':6, '걸':4, '윷':1, '모':1 };
+  w['모'] += cnt(seat, 'moCharm') + TUNE.comeback*cnt(seat, 'comeback'); w['윷'] += cnt(seat, 'yutCharm') + TUNE.comeback*cnt(seat, 'comeback');
+  if (hasC(seat, 'noBack')){ w[TUNE.noBackTo] += w['빽도']; w['빽도'] = 0; }
+  if (seatsExcept(seat).some(s => hasC(s, 'hex'))){ w['윷'] *= 0.5; w['모'] *= 0.5; }
+  return KEYS.map(k => [k, w[k]]);
+}
+function rollKey(seat, rnd){
+  const w = weights(seat); let tot = 0; w.forEach(x => tot += x[1]);
+  let r = rnd()*tot;
+  for (const [k, v] of w){ r -= v; if (r < 0) return k; }
+  return '개';
+}
+function simulate(seat, key, from, alt){
+  let group;
+  if (from === WAIT){ const w = waitingOf(seat); if (!w.length || key === '빽도') return null; group = [w[0]]; }
+  else { group = atN(seat, from); if (!group.length) return null; }
+  if (key === '빽도'){
+    if (from === 1) return { group, end:HOME, vis:[0], back:true };   // 도 자리에서 빽도면 참먹이로 돌아가 골인
+    const t = group[0].trail;
+    if (t.length >= 2) return { group, end:t[t.length - 2], vis:[t[t.length - 2]], back:true };
+    return { group, end:WAIT, vis:[], back:true };
+  }
+  let st = STEP[key];
+  if (key === '도' && alt && hasC(seat, 'quickDo')) st = 2;
+  if (key === '걸' && hasC(seat, 'geol') && TUNE.geolMode === 'four') st = 4;
+  if (group.length >= 2 && hasC(seat, 'piggy')) st += 1;
+  if (from !== WAIT && LAST.has(from) && hasC(seat, 'sprint')) st += TUNE.sprint;
+  if (TUNE.sprintLate && hasC(seat, 'sprint') && pcs(seat).filter(p => p.node !== HOME).length === 1) st += TUNE.sprintLate;
+  if (hasC(seat, 'express')) st += 1;
+  const r = walk(from, st, hasC(seat, 'shortcut'));
+  return { group, end:r.end, vis:r.vis, back:false };
+}
+function legalFroms(seat, key){
+  const out = [], seen = new Set();
+  for (const p of pcs(seat)){
+    if (p.node === HOME || p.node === WAIT || seen.has(p.node)) continue;
+    seen.add(p.node); out.push(p.node);
+  }
+  if (key !== '빽도' && waitingOf(seat).length) out.push(WAIT);
+  return out;
+}
+function pushEv(ev){
+  ev.seq = ++G.seq; G.events.push(ev);
+  if (G.events.length > 40) G.events.splice(0, G.events.length - 40);
+  G.rev = G.seq + '-' + Math.random().toString(36).slice(2, 8);   // 같은 순번이라도 내용이 다르면 알아챌 수 있게
+  return ev;
+}
+function actThrow(seat, isReroll, rnd){
+  const key = rollKey(seat, rnd || Math.random);
+  G.throwsLeft--;
+  let extra = 0;
+  const r = rnd || Math.random;
+  if (key === '윷' || key === '모') extra = (hasC(seat, 'double') && r() < TUNE.doubleP) ? 2 : 1;
+  else if (key === '걸' && hasC(seat, 'geol') && TUNE.geolMode === 'extra' && r() < TUNE.geolP) extra = 1;
+  G.throwsLeft += extra;
+  G.chips.push({ key, id:++G.chipSeq });
+  return pushEv({ t:'throw', seat, key, extra, reroll:!!isReroll });
+}
+function rerollsLeft(seat){ return 2*cnt(seat, 'reroll') - (G.rerollUsed[seat] || 0); }
+function actReroll(seat, ci, rnd){
+  if (rerollsLeft(seat) <= 0 || !G.chips[ci]) return null;
+  G.rerollUsed[seat] = (G.rerollUsed[seat] || 0) + 1;
+  G.chips.splice(ci, 1); G.throwsLeft++;
+  return actThrow(seat, true, rnd);
+}
+function actMove(seat, ci, from, alt){
+  const chip = G.chips[ci]; if (!chip) return null;
+  alt = !!(alt && chip.key === '도' && hasC(seat, 'quickDo'));
+  const sim = simulate(seat, chip.key, from, alt); if (!sim) return null;
+  G.chips.splice(ci, 1);
+  const group = sim.group;
+  const ev = { t:'move', seat, key:chip.key, alt, from, ids:group.map(p => p.id), vis:sim.vis.slice(), end:sim.end, victims:[], trapped:false, home:0 };
+  if (sim.end === HOME){ group.forEach(p => { p.node = HOME; p.trail = []; }); ev.home = group.length; }
+  else if (sim.end === WAIT){ group.forEach(p => { p.node = WAIT; p.trail = []; }); }
+  else {
+    const trail = sim.back ? group[0].trail.slice(0, -1) : (from === WAIT ? [] : group[0].trail).concat(sim.vis.filter(n => n !== 0));
+    group.forEach(p => { p.node = sim.end; });
+    const victims = othersAt(seat, sim.end);
+    victims.forEach(p => { p.node = WAIT; p.trail = []; });
+    ev.victims = victims.map(p => p.id);
+    for (const vs of new Set(victims.map(p => p.seat))){
+      const c = cnt(vs, 'payback');
+      if (c){ if (!G.bonus) G.bonus = Array(G.n).fill(0); G.bonus[vs] = (G.bonus[vs] || 0) + c; }
+    }
+    atN(seat, sim.end).forEach(p => { p.trail = trail.slice(); });
+    const ti = G.traps.indexOf(sim.end);
+    if (ti >= 0 && seat !== G.trapOwner){
+      G.traps.splice(ti, 1);
+      atN(seat, sim.end).forEach(p => { p.node = WAIT; p.trail = []; });
+      ev.trapped = true;
+    }
+    if (victims.length){
+      const chainHit = hasC(seat, 'chain') && Math.random() < TUNE.chainP;   // 잡기 연쇄: 확률로 한 번 더
+      ev.chain = chainHit;
+      G.throwsLeft += chainHit ? 2 : 1;
+    }
+  }
+  if (pcs(seat).every(p => p.node === HOME)) G.winner = seat;
+  return pushEv(ev);
+}
+// 던지기나 이동이 끝난 뒤 차례를 정리해요. 쓸 수 없는 결과는 버리고, 할 일이 없으면 다음 사람에게 넘겨요.
+function settle(seat, rnd){
+  if (G.winner !== null) return 'over';
+  if (G.throwsLeft > 0) return 'throw';
+  const removed = [];
+  G.chips = G.chips.filter(c => { const ok = legalFroms(seat, c.key).length > 0; if (!ok) removed.push(c.key); return ok; });
+  if (removed.length) pushEv({ t:'skip', seat, keys:removed });
+  if (G.chips.length) return 'move';
+  G.turn = (seat + 1) % G.n;
+  const bonus = (G.bonus && G.bonus[G.turn]) || 0;
+  if (G.bonus) G.bonus[G.turn] = 0;
+  G.throwsLeft = 1 + bonus; G.chips = [];
+  pushEv({ t:'turn', seat:G.turn, bonus });
+  const round = augmentDue();
+  if (round){
+    G.augRound = round;
+    G.augment = makeAugment(round, rnd || Math.random);
+    pushEv({ t:'augment', round, under:G.augment.under.slice() });
+    return 'augment';
+  }
+  return 'turn';
+}
+function phaseOf(){ if (!G) return 'none'; if (G.winner !== null) return 'over'; if (G.augment) return 'augment'; return G.throwsLeft > 0 ? 'throw' : 'move'; }
+
+// ---------- 증강 라운드 (친구와 하기) ----------
+// 누군가 첫 골인을 했을 때, 그리고 누군가 골인을 하나 남겼을 때 모두 부적을 하나씩 더 골라요.
+function augThresholds(k){ return k - 1 > 1 ? [1, k - 1] : [1]; }
+function augmentDue(){
+  if (!G.augmentsOn) return 0;
+  let maxHome = 0;
+  for (let s = 0; s < G.n; s++) maxHome = Math.max(maxHome, pcs(s).filter(p => p.node === HOME).length);
+  let r = 0;
+  augThresholds(G.nPieces).forEach((t, i) => { if (maxHome >= t) r = i + 1; });
+  return r > (G.augRound || 0) ? r : 0;
+}
+function progress(s){ return pcs(s).reduce((a, p) => a + (p.node === HOME ? 30 : p.node === WAIT ? 0 : 21 - dist(p.node)), 0); }
+function shuffled(a, rnd){ a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(rnd()*(i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+// 가장 뒤처진 사람(여럿이면 모두)은 역전 부적 중에서 고르고, 나머지는 보통 부적 중에서 골라요.
+function makeAugment(round, rnd){
+  const sc = []; for (let s = 0; s < G.n; s++) sc.push(progress(s));
+  const min = Math.min.apply(null, sc), allEq = sc.every(x => x === min);
+  const offers = [], under = [];
+  for (let s = 0; s < G.n; s++){
+    const isUnder = !allEq && sc[s] === min;
+    const ok = id => UPG[id].stack || !cnt(s, id);
+    let list = isUnder ? shuffled(CATCHUP_POOL.filter(ok), rnd).slice(0, 3) : weightedPick(MULTI_POOL.filter(ok), 3, rnd);
+    if (list.length < 3) list = list.concat(shuffled(MULTI_POOL.filter(id => ok(id) && !list.includes(id)), rnd).slice(0, 3 - list.length));
+    offers.push(list);
+    if (isUnder) under.push(s);
+  }
+  return { round, offers, picks:Array(G.n).fill(null), under };
+}
+
+// ---------- 컴퓨터 상대의 판단 ----------
+function seatThreat(node, seat, exclIds){
+  const w = weights(seat); let tot = 0; w.forEach(x => tot += x[1]);
+  if (!tot) return 0;
+  const froms = new Set();
+  for (const p of pcs(seat)){ if (p.node === HOME || exclIds.includes(p.id)) continue; froms.add(p.node); }
+  let prob = 0;
+  for (const [key, wt] of w){
+    if (!wt) continue;
+    let hit = false;
+    for (const f of froms){
+      if (f === WAIT && key === '빽도') continue;
+      for (const alt of (key === '도' && hasC(seat, 'quickDo')) ? [false, true] : [false]){
+        const sim = simulate(seat, key, f, alt);
+        if (sim && sim.end === node){ hit = true; break; }
+      }
+      if (hit) break;
+    }
+    if (hit) prob += wt/tot;
+  }
+  return prob;
+}
+function threatAt(node, mySeat, exclIds){ let p = 0; for (const s of seatsExcept(mySeat)) p += seatThreat(node, s, exclIds); return Math.min(1, p); }
+function evalMove(seat, key, from, capW, alt){
+  const sim = simulate(seat, key, from, alt); if (!sim) return -1e9;
+  const g = sim.group.length;
+  const dFrom = from === WAIT ? 21 : dist(from);
+  const dTo = sim.end === HOME ? 0 : sim.end === WAIT ? 21 : dist(sim.end);
+  let v = (dFrom - dTo)*2.5*g;
+  if (sim.end === HOME) return v + 55*g;
+  if (sim.end === WAIT) return v - 10*g;
+  const victims = othersAt(seat, sim.end);
+  if (victims.length) v += (40 + 3*(21 - dist(sim.end)))*victims.length*capW + 25;
+  if (atN(seat, sim.end).some(p => !sim.group.includes(p))) v += 12;
+  if (G.traps.includes(sim.end) && seat !== G.trapOwner) v -= 120;
+  if (BRANCH.has(sim.end)) v += 9;
+  v -= threatAt(sim.end, seat, victims.map(p => p.id))*(18 + 2*(21 - dTo))*g;
+  if (from !== WAIT) v += threatAt(from, seat, [])*(14 + 2*(21 - dFrom))*g; else v += 4;
+  return v;
+}
+function aiChoose(seat, noise, capW, rnd){
+  let best = null;
+  G.chips.forEach((c, ci) => {
+    for (const from of legalFroms(seat, c.key)){
+      for (const alt of (c.key === '도' && hasC(seat, 'quickDo')) ? [false, true] : [false]){
+        const v = evalMove(seat, c.key, from, capW, alt) + (rnd() - 0.5)*2*noise;
+        if (!best || v > best.v) best = { ci, from, alt, v };
+      }
+    }
+  });
+  return best;
+}
+/*CORE-END*/
+
+// ---------- 윷판 좌표와 그림 ----------
+const POS = {};
+(function(){
+  const m = 9, s = 82, P = (x, y) => ({ x:+x.toFixed(2), y:+y.toFixed(2) });
+  POS[0] = P(m+s, m+s);
+  for (let k = 1; k <= 4; k++) POS[k] = P(m+s, m+s - s*k/5);
+  POS[5] = P(m+s, m);
+  for (let k = 1; k <= 4; k++) POS[5+k] = P(m+s - s*k/5, m);
+  POS[10] = P(m, m);
+  for (let k = 1; k <= 4; k++) POS[10+k] = P(m, m + s*k/5);
+  POS[15] = P(m, m+s);
+  for (let k = 1; k <= 4; k++) POS[15+k] = P(m + s*k/5, m+s);
+  const C = P(m + s/2, m + s/2); POS[22] = C;
+  const lerp = (a, b, t) => P(a.x + (b.x - a.x)*t, a.y + (b.y - a.y)*t);
+  POS[20] = lerp(POS[5], C, 1/3); POS[21] = lerp(POS[5], C, 2/3);
+  POS[23] = lerp(C, POS[15], 1/3); POS[24] = lerp(C, POS[15], 2/3);
+  POS[25] = lerp(POS[10], C, 1/3); POS[26] = lerp(POS[10], C, 2/3);
+  POS[27] = lerp(C, POS[0], 1/3); POS[28] = lerp(C, POS[0], 2/3);
+})();
+const svg = $('board');
+function mk(tag, attrs, parent){ const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+const gLines = mk('g', {}, svg), gTraps = mk('g', {}, svg), gNodes = mk('g', {}, svg), gPreview = mk('g', {}, svg), gFx = mk('g', {}, svg), gPieces = mk('g', {}, svg);
+(function(){
+  const p = n => POS[n].x + ' ' + POS[n].y;
+  mk('path', { d:'M' + p(0) + ' L' + p(5) + ' L' + p(10) + ' L' + p(15) + ' Z', class:'ln' }, gLines);
+  mk('path', { d:'M' + p(5) + ' L' + p(15), class:'ln' }, gLines);
+  mk('path', { d:'M' + p(10) + ' L' + p(0), class:'ln' }, gLines);
+  for (let n = 0; n <= 28; n++){
+    const big = n === 0 || n === 5 || n === 10 || n === 15 || n === 22;
+    mk('circle', { cx:POS[n].x, cy:POS[n].y, r:big ? 3.9 : 2.7, class:'nd' + (big ? ' big' : '') }, gNodes);
+  }
+  const lb = mk('text', { x:95.6, y:98.2, 'text-anchor':'end', class:'lbl' }, gNodes); lb.textContent = '참먹이 · 출발과 골인';
+  mk('path', { d:'M96.6 78 L98.4 81.4 L94.8 81.4 Z', class:'arrow' }, gNodes);
+})();
+
+// 화면에 보이는 말 위치. 애니메이션 중에는 실제 상태보다 한 박자 늦게 따라가요.
+const disp = {};
+let pieceEls = {};
+const seatOfId = id => Number(id.slice(1, id.indexOf('p')));
+function buildPieces(){
+  gPieces.textContent = ''; pieceEls = {};
+  for (const k in disp) delete disp[k];
+  if (!G) return;
+  for (const p of G.pieces){
+    const g = mk('g', { class:'piece s' + p.seat, 'data-id':p.id, hidden:'' }, gPieces);
+    mk('circle', { r:5.6, class:'hit' }, g);
+    mk('circle', { r:4.7, class:'ring' }, g);
+    mk('circle', { r:3.4, class:'body' }, g);
+    mk('circle', { r:1.2, class:'eye' }, g);
+    mk('text', { y:-4.6, 'text-anchor':'middle', class:'cnt' }, g);
+    pieceEls[p.id] = g; disp[p.id] = p.node;
+  }
+}
+function renderDisp(instant){
+  const groups = {};
+  const ids = Object.keys(pieceEls);
+  for (const id of ids){ const n = disp[id]; if (n === WAIT || n === HOME) continue; const k = seatOfId(id) + ':' + n; (groups[k] = groups[k] || []).push(id); }
+  for (const id of ids){
+    const e = pieceEls[id], n = disp[id];
+    if (n === WAIT || n === HOME){ e.setAttribute('hidden', ''); continue; }
+    const g = groups[seatOfId(id) + ':' + n], k = g.indexOf(id), pos = POS[n];
+    if (instant) e.style.transition = 'none';
+    e.style.transform = 'translate(' + (pos.x + k*1.5) + 'px,' + (pos.y - k*1.5) + 'px)';
+    e.removeAttribute('hidden');
+    e.querySelector('.cnt').textContent = (g.length > 1 && k === g.length - 1) ? '×' + g.length : '';
+    if (instant){ e.getBoundingClientRect(); e.style.transition = ''; }
+  }
+}
+function syncDisp(instant){ if (!G) return; for (const p of G.pieces) disp[p.id] = p.node; renderDisp(instant); }
+function renderTraps(){
+  gTraps.textContent = '';
+  if (!G) return;
+  for (const n of G.traps){
+    const g = mk('g', { class:'trap' }, gTraps), c = POS[n];
+    mk('circle', { cx:c.x, cy:c.y, r:4.6 }, g);
+    mk('path', { d:'M' + (c.x - 1.6) + ' ' + (c.y - 1.6) + ' L' + (c.x + 1.6) + ' ' + (c.y + 1.6) + ' M' + (c.x + 1.6) + ' ' + (c.y - 1.6) + ' L' + (c.x - 1.6) + ' ' + (c.y + 1.6) }, g);
+  }
+}
+function flashNode(n){
+  if (reduceMotion || !POS[n]) return;
+  const c = mk('circle', { cx:POS[n].x, cy:POS[n].y, r:4, class:'flash' }, gFx);
+  const t0 = performance.now();
+  (function tick(t){ const k = (t - t0)/420; if (k >= 1){ c.remove(); return; } c.setAttribute('r', 4 + k*6); c.setAttribute('opacity', 1 - k); requestAnimationFrame(tick); })(t0);
+}
+let preview = null, sel = -1;
+function clearPreview(){ gPreview.textContent = ''; preview = null; }
+function drawPreview(seat, sim, from){
+  gPreview.textContent = '';
+  if (!sim) return;
+  const pts = [from === WAIT ? POS[0] : POS[from]];
+  for (const n of sim.vis) pts.push(POS[n]);
+  if (pts.length > 1) mk('polyline', { points:pts.map(q => q.x + ',' + q.y).join(' '), class:'pv-path' }, gPreview);
+  let dest, label = '';
+  if (sim.end === HOME){ dest = POS[0]; label = '골인'; }
+  else if (sim.end === WAIT){ dest = POS[0]; label = '출발점으로'; }
+  else {
+    dest = POS[sim.end];
+    if (othersAt(seat, sim.end).length) label = '잡기!';
+    else if (G.traps.includes(sim.end) && seat !== G.trapOwner) label = '함정';
+    else if (atN(seat, sim.end).some(p => !sim.group.includes(p))) label = '업기';
+    else if (BRANCH.has(sim.end)) label = '지름길';
+  }
+  mk('circle', { cx:dest.x, cy:dest.y, r:5.6, class:'pv-dest', 'data-dest':'1' }, gPreview);
+  if (label){
+    const ly = dest.y < 12 ? dest.y + 9.5 : dest.y - 7.2;
+    const lx = Math.min(92, Math.max(8, dest.x));
+    const t = mk('text', { x:lx, y:ly, 'text-anchor':'middle', class:'pv-label' }, gPreview); t.textContent = label;
+  }
+}
+
+// ---------- 소리 ----------
+// 음원 파일 없이 브라우저에서 바로 만들어 내는 소리예요. 배경음악은 굿거리장단에 가야금 느낌의 5음 가락을 얹은 자작 곡이에요.
+const Sound = (() => {
+  let ctx = null, musicGain = null, sfxGain = null, noiseBuf = null, timer = null, nextBar = 0, bar = 0;
+  let musicOn = lsGet('yutgil.music') !== '0', sfxOn = lsGet('yutgil.sfx') !== '0';
+  const MUSIC_VOL = 0.15, SFX_VOL = 0.5, E = 0.24;   // E: 8분음표 길이(초). 한 마디 = 12개
+  // [시작(8분음표 단위), MIDI 음, 길이]
+  const MELODY = [
+    [[0,74,3],[3,72,2],[5,69,1],[6,67,3],[9,69,3]],
+    [[0,72,3],[3,74,3],[6,76,6]],
+    [[0,79,3],[3,76,2],[5,74,1],[6,72,3],[9,74,3]],
+    [[0,69,6],[6,67,6]],
+    [[0,67,2],[2,69,1],[3,72,3],[6,74,2],[8,72,1],[9,69,3]],
+    [[0,72,3],[3,69,3],[6,67,3],[9,64,3]],
+    [[0,62,3],[3,64,3],[6,67,3],[9,69,3]],
+    [[0,67,9]]
+  ];
+  const ROOTS = [43, 48, 43, 50, 43, 48, 38, 43];
+  const mtof = m => 440*Math.pow(2, (m - 69)/12);
+  function ensure(){
+    if (ctx) return true;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    ctx = new AC();
+    const master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+    musicGain = ctx.createGain(); musicGain.gain.value = musicOn ? MUSIC_VOL : 0; musicGain.connect(master);
+    sfxGain = ctx.createGain(); sfxGain.gain.value = sfxOn ? SFX_VOL : 0; sfxGain.connect(master);
+    noiseBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate*0.6), ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1;
+    return true;
+  }
+  // 가야금처럼 튕기는 소리 (길게 끄는 음에는 농현처럼 살짝 떨림)
+  function pluck(dest, t, midi, dur, vol){
+    const f = mtof(midi), end = t + Math.max(0.3, dur*1.1);
+    const o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), g2 = ctx.createGain(), lp = ctx.createBiquadFilter();
+    o.type = 'triangle'; o.frequency.setValueAtTime(f*1.015, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.06);
+    o2.type = 'sine'; o2.frequency.setValueAtTime(f*2.003, t); g2.gain.value = 0.3;
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(3200, t); lp.frequency.exponentialRampToValueAtTime(900, end);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, end);
+    o.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); g.connect(dest);
+    if (dur > 0.5){
+      const lfo = ctx.createOscillator(), lg = ctx.createGain();
+      lfo.frequency.value = 5.2; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f*0.012, t + 0.35);
+      lfo.connect(lg); lg.connect(o.frequency); lfo.start(t); lfo.stop(end);
+    }
+    o.start(t); o2.start(t); o.stop(end + 0.05); o2.stop(end + 0.05);
+  }
+  function thump(dest, t, vol, f0, f1, len){
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + len*0.6);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + len + 0.05);
+  }
+  function noise(dest, t, vol, freq, q, len, type, freqEnd){
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noiseBuf; f.type = type || 'bandpass'; f.frequency.setValueAtTime(freq, t); f.Q.value = q;
+    if (freqEnd) f.frequency.exponentialRampToValueAtTime(freqEnd, t + len);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + len + 0.02);
+  }
+  function glide(dest, t, vol, f0, f1, len, type){
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + len);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + len + 0.02);
+  }
+  function scheduleBar(t, i){
+    for (const [s, m, l] of MELODY[i]) pluck(musicGain, t + s*E, m, l*E, 0.45);
+    // 굿거리: 덩 . . 덕 . . 쿵 . 기 덕 . .
+    thump(musicGain, t, 0.5, 120, 55, 0.35); noise(musicGain, t, 0.16, 2600, 1.2, 0.05);
+    noise(musicGain, t + 3*E, 0.14, 2600, 1.2, 0.05);
+    thump(musicGain, t + 6*E, 0.36, 110, 55, 0.3);
+    noise(musicGain, t + 8*E, 0.08, 2800, 1.2, 0.04); noise(musicGain, t + 9*E, 0.12, 2600, 1.2, 0.05);
+    // 바닥에 깔리는 낮은 울림
+    const len = 12*E, root = ROOTS[i];
+    for (const m of [root, root + 7]){
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = mtof(m);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.4); g.gain.setValueAtTime(0.09, t + len - 0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + len + 0.1);
+      o.connect(g); g.connect(musicGain); o.start(t); o.stop(t + len + 0.15);
+    }
+  }
+  function tick(){ while (nextBar < ctx.currentTime + 0.7){ scheduleBar(nextBar, bar % MELODY.length); nextBar += 12*E; bar++; } }
+  function startMusic(){ if (!ctx || timer) return; nextBar = ctx.currentTime + 0.15; bar = 0; tick(); timer = setInterval(tick, 200); }
+  function stopMusic(){ clearInterval(timer); timer = null; }
+  function unlock(){
+    if (!ensure()) return;
+    if (ctx.state === 'suspended' && !document.hidden) ctx.resume();
+    if (musicOn) startMusic();
+  }
+  function setMusic(on){
+    musicOn = on; lsSet('yutgil.music', on ? '1' : '0');
+    if (!ensure()) return;
+    musicGain.gain.setTargetAtTime(on ? MUSIC_VOL : 0, ctx.currentTime, 0.15);
+    if (on) unlock(); else setTimeout(() => { if (!musicOn) stopMusic(); }, 700);
+  }
+  function setSfx(on){ sfxOn = on; lsSet('yutgil.sfx', on ? '1' : '0'); if (ensure()) sfxGain.gain.setTargetAtTime(on ? SFX_VOL : 0, ctx.currentTime, 0.02); }
+  function play(name){
+    if (!sfxOn || !ctx || ctx.state !== 'running') return;
+    const t = ctx.currentTime + 0.01, d = sfxGain;
+    switch (name){
+      case 'throw':   // 윷가락이 부딪히는 소리
+        for (let i = 0; i < 4; i++){ const tt = t + i*0.055 + Math.random()*0.02; noise(d, tt, 0.55, 1300 + Math.random()*900, 5, 0.07); thump(d, tt, 0.12, 460, 320, 0.05); }
+        break;
+      case 'land':    // 바닥에 떨어지는 소리
+        for (let i = 0; i < 3; i++){ const tt = t + i*0.045; noise(d, tt, 0.35, 900 + Math.random()*500, 4, 0.06); }
+        break;
+      case 'hot':     // 윷·모
+        [79, 81, 84, 86].forEach((m, i) => pluck(d, t + i*0.07, m, 0.45, 0.32));
+        break;
+      case 'back':    // 빽도, 함정
+        glide(d, t, 0.28, 620, 230, 0.3, 'triangle');
+        break;
+      case 'step':
+        thump(d, t, 0.07, 900, 620, 0.04);
+        break;
+      case 'capture': // 말을 잡을 때: 북 한 번 + 휘두르는 바람 소리 + 쨍한 마무리
+        thump(d, t, 0.9, 150, 42, 0.55);
+        noise(d, t, 0.45, 400, 1.4, 0.28, 'bandpass', 3200);
+        pluck(d, t + 0.12, 88, 0.6, 0.28); pluck(d, t + 0.12, 81, 0.6, 0.2);
+        break;
+      case 'ouch':    // 내 말이 잡혔을 때
+        pluck(d, t, 74, 0.25, 0.25); pluck(d, t + 0.16, 69, 0.25, 0.22); pluck(d, t + 0.32, 62, 0.5, 0.2);
+        break;
+      case 'goal':
+        [67, 72, 76, 79].forEach((m, i) => pluck(d, t + i*0.08, m, 0.5, 0.3));
+        break;
+      case 'augment':
+        [84, 88, 91, 96].forEach((m, i) => { pluck(d, t + i*0.09, m, 0.8, 0.18); pluck(d, t + i*0.09 + 0.01, m + 0.08, 0.8, 0.1); });
+        break;
+      case 'win':
+        thump(d, t, 0.7, 130, 50, 0.5);
+        [67, 72, 76, 79].forEach((m, i) => pluck(d, t + i*0.12, m, 0.5, 0.32));
+        [72, 76, 79, 84].forEach(m => pluck(d, t + 0.55, m, 1.4, 0.2));
+        break;
+      case 'lose':
+        [74, 72, 69, 67].forEach((m, i) => pluck(d, t + i*0.18, m, 0.5, 0.22));
+        break;
+    }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (!ctx) return;
+    if (document.hidden) ctx.suspend(); else { ctx.resume(); if (timer){ nextBar = Math.max(nextBar, ctx.currentTime + 0.1); } }
+  });
+  return { unlock, setMusic, setSfx, play, get musicOn(){ return musicOn; }, get sfxOn(){ return sfxOn; } };
+})();
+document.addEventListener('pointerdown', () => Sound.unlock(), { passive:true });
+document.addEventListener('keydown', () => Sound.unlock());
+function syncSoundButtons(){ $('musicBtn').setAttribute('aria-pressed', String(Sound.musicOn)); $('sfxBtn').setAttribute('aria-pressed', String(Sound.sfxOn)); }
+$('musicBtn').addEventListener('click', () => { Sound.setMusic(!Sound.musicOn); syncSoundButtons(); });
+$('sfxBtn').addEventListener('click', () => { Sound.setSfx(!Sound.sfxOn); syncSoundButtons(); });
+syncSoundButtons();
+
+// ---------- 윷가락과 알림 ----------
+const sticks = Array.from(document.querySelectorAll('.stick'));
+const callEl = $('call'); let callTimer = null;
+function showCall(key){
+  callEl.textContent = key + ((key === '윷' || key === '모') ? '!' : '');
+  callEl.className = 'call show' + ((key === '윷' || key === '모') ? ' hot' : key === '빽도' ? ' back' : '');
+  clearTimeout(callTimer); callTimer = setTimeout(() => { callEl.className = 'call'; }, 850);
+}
+async function animThrow(key, fast){
+  Sound.play('throw');
+  sticks.forEach(s => { s.classList.remove('tumble'); void s.offsetWidth; s.classList.add('tumble'); });
+  await sleep(reduceMotion ? 60 : fast ? 260 : 440);
+  const n = { '빽도':1, '도':1, '개':2, '걸':3, '윷':4, '모':0 }[key];
+  let flat;
+  if (key === '빽도') flat = [0];
+  else if (key === '도') flat = [1 + Math.floor(Math.random()*3)];
+  else { const idx = [0,1,2,3]; for (let i = 3; i > 0; i--){ const j = Math.floor(Math.random()*(i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; } flat = idx.slice(0, n); }
+  sticks.forEach((s, i) => { s.classList.remove('tumble'); s.classList.toggle('flat', flat.includes(i)); s.classList.toggle('round', !flat.includes(i)); });
+  showCall(key);
+  Sound.play(key === '윷' || key === '모' ? 'hot' : key === '빽도' ? 'back' : 'land');
+  await sleep(reduceMotion ? 200 : fast ? 330 : 520);
+}
+const toastEl = $('toast'); let toastTimer = null;
+function toast(msg, ms){ toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastEl.hidden = true; }, ms || 2000); }
+function setStatus(t){ $('status').textContent = t; }
+
+// ---------- 공통 진행 ----------
+let mode = null;         // 'solo' | 'multi' | null
+let mySeat = 0, busy = false, animating = false, token = 0, lastSeq = 0, winSoundGid = null;
+let run = null;          // 혼자 원정 기록
+function nameOf(seat){
+  if (mode === 'solo') return seat === 0 ? '나' : STAGES[run.stage].name;
+  if (mode === 'multi' && NET.state && NET.state.players[seat]) return NET.state.players[seat].name;
+  return '상대';
+}
+function canAct(){ return !!(G && mode && !busy && !animating && G.winner === null && G.turn === mySeat && phaseOf() === 'move' && !modalBlocks()); }
+function canThrow(){ return !!(G && mode && !busy && !animating && G.winner === null && G.turn === mySeat && phaseOf() === 'throw' && !modalBlocks()); }
+function modalBlocks(){ return !modal.hidden && modalKind !== 'rules'; }
+
+async function animateEvent(ev, tk){
+  // 친구 화면에서 온 동작은 조금 빠르게 보여줘서 밀리지 않게 해요.
+  const fast = mode === 'multi' && ev.seat !== mySeat;
+  if (ev.t === 'throw'){
+    if (ev.seat !== mySeat) setStatus(josa(nameOf(ev.seat), '이', '가') + (ev.reroll ? ' 다시 던져요.' : ' 던지는 중이에요.'));
+    await animThrow(ev.key, fast);
+    if (ev.extra) setStatus(ev.seat === mySeat ? ev.key + '! 한 번 더 던지세요.' : nameOf(ev.seat) + ': ' + ev.key + '! 한 번 더 던져요.');
+    return;
+  }
+  if (ev.t === 'move'){
+    const stepMs = reduceMotion ? 50 : fast ? 110 : 150;
+    if (ev.from === WAIT){ ev.ids.forEach(id => disp[id] = 0); renderDisp(true); await sleep(40); }
+    for (const n of ev.vis){ ev.ids.forEach(id => disp[id] = n); renderDisp(); Sound.play('step'); await sleep(stepMs); if (tk !== token) return; }
+    if (ev.end === HOME) ev.ids.forEach(id => disp[id] = HOME);
+    else if (ev.end === WAIT) ev.ids.forEach(id => disp[id] = WAIT);
+    if (ev.victims.length){
+      ev.victims.forEach(id => disp[id] = WAIT); flashNode(ev.end);
+      Sound.play('capture');
+      if (ev.seat !== mySeat && ev.victims.some(id => seatOfId(id) === mySeat)) setTimeout(() => Sound.play('ouch'), 420);
+    }
+    if (ev.trapped){ for (const id in disp) if (seatOfId(id) === ev.seat && disp[id] === ev.end) disp[id] = WAIT; flashNode(ev.end); Sound.play('back'); }
+    if (ev.home) Sound.play('goal');
+    renderDisp();
+    eventToast(ev);
+    return;
+  }
+  if (ev.t === 'skip'){ toast(ev.keys.join('·') + ': 움직일 말이 없어서 넘어가요.'); await sleep(reduceMotion ? 80 : 350); return; }
+  if (ev.t === 'turn'){
+    if (ev.skipped) toast('방장이 차례를 넘겼어요.');
+    else if (ev.bonus) toast((ev.seat === mySeat ? '설욕! 이번 차례에 ' : nameOf(ev.seat) + ' 설욕: ') + ev.bonus + '번 더 던져요.');
+    await sleep(reduceMotion ? 60 : 220); return;
+  }
+  if (ev.t === 'augment'){
+    toast('증강 라운드 ' + ev.round + '! 모두 부적을 하나씩 더 골라요.', 2600);
+    Sound.play('augment');
+    await sleep(reduceMotion ? 80 : 600); return;
+  }
+  if (ev.t === 'augdone'){
+    toast(ev.picks.map((id, s) => (s === mySeat ? '나' : nameOf(s)) + ': ' + (UPG[id] ? UPG[id].name : '-')).join(' · '), 3600);
+    await sleep(reduceMotion ? 80 : 400);
+  }
+}
+function eventToast(ev){
+  const mine = ev.seat === mySeat;
+  if (ev.trapped){ toast(mine ? '함정에 걸렸어요! 출발점으로 돌아가요.' : '함정에 걸렸어요! ' + nameOf(ev.seat) + ' 말이 출발점으로 돌아가요.'); return; }
+  if (ev.victims.length){
+    const hitMe = ev.victims.some(id => seatOfId(id) === mySeat);
+    if (mine) toast(ev.chain ? '잡았다! 잡기 연쇄 발동, 2번 더 던져요.' : '잡았다! 한 번 더 던져요.');
+    else if (hitMe) toast(josa(nameOf(ev.seat), '이', '가') + ' 내 말을 잡았어요.');
+    else toast(josa(nameOf(ev.seat), '이', '가') + ' ' + nameOf(seatOfId(ev.victims[0])) + ' 말을 잡았어요.');
+    return;
+  }
+  if (ev.home) toast(mine ? (ev.home > 1 ? '업힌 말 ' + ev.home + '개가 함께 골인!' : '골인!') : nameOf(ev.seat) + ' 말 ' + ev.home + '개 골인');
+}
+async function playNewEvents(tk){
+  animating = true; updateUI();
+  for (const e of G.events.filter(e => e.seq > lastSeq)){
+    await animateEvent(e, tk);
+    if (tk !== token){ animating = false; return false; }
+    lastSeq = e.seq;
+  }
+  animating = false;
+  syncDisp(); renderTraps();
+  return true;
+}
+// 내 차례에 한 동작(던지기, 다시 던지기, 이동)을 하고 화면에 보여줘요.
+async function runLocal(fn){
+  if (busy || animating || !G || G.turn !== mySeat || G.winner !== null) return;
+  busy = true; clearPreview(); sel = -1;
+  const seat = G.turn;
+  const ev = fn();
+  if (!ev){ busy = false; updateUI(); return; }
+  if (mode === 'solo' && ev.t === 'move' && ev.victims.length){ run.score += 40*ev.victims.length; run.captures += ev.victims.length; }
+  settle(seat);
+  if (mode === 'multi') pushGame();
+  const tk = token;
+  const ok = await playNewEvents(tk);
+  if (!ok || tk !== token) return;
+  busy = false;
+  afterChange();
+}
+function afterChange(){
+  if (!G) { updateUI(); return; }
+  if (G.winner !== null){ updateUI(); onWinner(); return; }
+  if (G.augment){
+    setStatus('증강 라운드 ' + G.augment.round + ': 모두 부적을 고르는 중이에요.');
+    updateUI();
+    if (mode === 'multi') showAugment();
+    return;
+  }
+  if (modalKind === 'augment' || modalKind === 'augwait') closeModal();
+  if (G.turn === mySeat){
+    const ph = phaseOf();
+    if (ph === 'move'){ sel = 0; autoPreview(); setStatus(G.chips.length > 1 ? '쓸 결과를 고르고, 움직일 말을 누르세요.' : '움직일 말을 누르세요. 한 번 더 누르면 이동해요.'); }
+    else setStatus(G.chips.length ? '한 번 더 던지세요.' : '윷을 던질 차례예요.');
+  } else {
+    setStatus(josa(nameOf(G.turn), '이', '가') + ' 할 차례예요.');
+    if (mode === 'solo') aiTurn();
+  }
+  updateUI();
+}
+function autoPreview(){
+  if (sel < 0 || !G.chips[sel]) return;
+  const key = G.chips[sel].key, froms = legalFroms(mySeat, key);
+  if (froms.length === 1){ const sim = simulate(mySeat, key, froms[0], quickAlt); preview = { from:froms[0], sim }; drawPreview(mySeat, sim, froms[0]); }
+}
+let quickAlt = false;   // 날쌘 도: 2칸으로 갈지
+function selectChip(i){
+  if (!canAct()) return;
+  const c = G.chips[i];
+  if (sel === i && c && c.key === '도' && hasC(mySeat, 'quickDo')){
+    // 같은 도를 한 번 더 누르면 1칸 ↔ 2칸
+    quickAlt = !quickAlt;
+    const from = preview ? preview.from : null;
+    clearPreview();
+    if (from !== null){ const sim = simulate(mySeat, '도', from, quickAlt); preview = { from, sim }; drawPreview(mySeat, sim, from); }
+    else autoPreview();
+    updateUI(); return;
+  }
+  sel = i; quickAlt = false; clearPreview(); autoPreview(); updateUI();
+}
+function onPick(from){
+  if (!canAct() || sel < 0 || !G.chips[sel]) return;
+  const key = G.chips[sel].key;
+  if (!legalFroms(mySeat, key).includes(from)) return;
+  if (preview && preview.from === from){ confirmMove(); return; }
+  const sim = simulate(mySeat, key, from, quickAlt);
+  preview = { from, sim }; drawPreview(mySeat, sim, from); updateUI();
+}
+function confirmMove(){ if (!canAct() || !preview || sel < 0) return; const ci = sel, from = preview.from, alt = quickAlt; quickAlt = false; runLocal(() => actMove(mySeat, ci, from, alt)); }
+function doThrow(){ if (!canThrow()) return; runLocal(() => actThrow(mySeat, false)); }
+function doReroll(){ if (!canAct() || sel < 0 || rerollsLeft(mySeat) <= 0) return; const ci = sel; runLocal(() => actReroll(mySeat, ci)); }
+function onWinner(){
+  if (mode === 'solo'){
+    if (run.ending) return; run.ending = true;
+    Sound.play(G.winner === 0 ? 'win' : 'lose');
+    const tk = token;
+    setTimeout(() => { if (tk === token) stageEnd(G.winner === 0); }, 700);
+  } else if (mode === 'multi'){
+    setStatus(G.winner === mySeat ? '내가 이겼어요!' : josa(nameOf(G.winner), '이', '가') + ' 이겼어요.');
+    if (winSoundGid !== G.gid){ winSoundGid = G.gid; Sound.play(G.winner === mySeat ? 'win' : 'lose'); }
+    if (NET.state && NET.state.phase === 'over') showOver();
+  }
+}
+
+// ---------- 화면 갱신 ----------
+const mainBtn = $('mainBtn'), rerollBtn = $('rerollBtn'), enterBtn = $('enterBtn'), chipsEl = $('chips'), skipBtn = $('skipBtn');
+function stepLabel(seat, key, selected){
+  if (key === '빽도') return '1칸 뒤로';
+  if (key === '도' && hasC(seat, 'quickDo')) return (selected && quickAlt ? '2칸' : '1칸') + ' · ' + (selected ? '누르면 ' + (quickAlt ? '1칸' : '2칸') : '1~2칸');
+  return STEP[key] + '칸' + ((key === '윷' || key === '모') ? ' · 한 번 더' : '');
+}
+function updateUI(){
+  // 위쪽: 혼자 원정이면 일곱 판 길, 친구와 하기면 방 코드
+  const road = $('road');
+  road.hidden = mode === 'multi';
+  $('roomBadge').hidden = mode !== 'multi';
+  if (mode === 'multi' && NET.code) $('roomBadgeCode').textContent = NET.code;
+  road.textContent = '';
+  STAGES.forEach((s, i) => {
+    const li = document.createElement('li');
+    if (mode === 'solo' && run){ if (i < run.stage) li.className = 'done'; else if (i === run.stage) li.className = 'now'; }
+    const d = document.createElement('span'); d.className = 'dot'; li.appendChild(d);
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = s.name; li.appendChild(nm);
+    li.title = (i + 1) + '판 ' + s.name;
+    road.appendChild(li);
+  });
+  $('tagline').textContent = mode === 'multi' ? '친구들과 윷판 한 판, 부적 하나씩 들고' : '윷놀이 일곱 판, 부적을 모으며 끝까지';
+
+  renderSeats();
+
+  // 내 자리
+  const meTok = $('meTok'); meTok.className = 'tok s' + mySeat;
+  $('meName').textContent = mode === 'multi' && NET.state && NET.state.players[mySeat] ? NET.state.players[mySeat].name + ' (나)' : '나';
+  $('mePieces').textContent = G ? pcs(mySeat).length : 3;
+  $('meHome').textContent = G ? pcs(mySeat).filter(p => p.node === HOME).length : 0;
+  $('meWait').textContent = G ? waitingOf(mySeat).length : 3;
+
+  // 버튼
+  const ph = phaseOf();
+  const myTurn = G && G.turn === mySeat && G.winner === null;
+  if (!G){ mainBtn.disabled = true; mainBtn.textContent = '윷 던지기'; }
+  else if (G.winner !== null){ mainBtn.disabled = true; mainBtn.textContent = '판이 끝났어요'; }
+  else if (G.augment){ mainBtn.disabled = true; mainBtn.textContent = '증강 고르는 중'; }
+  else if (!myTurn){ mainBtn.disabled = true; mainBtn.textContent = nameOf(G.turn) + ' 차례'; }
+  else if (ph === 'throw'){ mainBtn.disabled = !canThrow(); mainBtn.textContent = G.chips.length ? '한 번 더 던지기' : '윷 던지기'; }
+  else { mainBtn.disabled = !(canAct() && preview); mainBtn.textContent = preview ? '여기로 이동' : '움직일 말을 고르세요'; }
+
+  const myRerolls = G ? 2*cnt(mySeat, 'reroll') : 0;
+  rerollBtn.hidden = !(G && myRerolls > 0);
+  $('rerollN').textContent = G ? rerollsLeft(mySeat) : 0;
+  rerollBtn.disabled = !(canAct() && sel >= 0 && rerollsLeft(mySeat) > 0);
+
+  const isHost = mode === 'multi' && NET.state && NET.seat === 0;
+  skipBtn.hidden = !(isHost && NET.state.phase === 'play' && G && G.winner === null && !G.augment && G.turn !== mySeat);
+  if (skipBtn.hidden) resetSkipConfirm();
+
+  // 결과 칩
+  chipsEl.textContent = '';
+  if (G && G.winner === null){
+    if (!G.chips.length){ const s = document.createElement('span'); s.className = 'none'; s.textContent = myTurn ? '던진 결과가 여기에 쌓여요.' : ''; chipsEl.appendChild(s); }
+    G.chips.forEach((c, i) => {
+      const b = document.createElement('button'); b.type = 'button';
+      b.className = 'chip' + ((c.key === '윷' || c.key === '모') ? ' hot' : c.key === '빽도' ? ' back' : '') + (G.turn !== mySeat ? ' theirs' : '');
+      const bb = document.createElement('b'); bb.textContent = c.key; b.appendChild(bb);
+      const sm = document.createElement('small'); sm.textContent = stepLabel(G.turn, c.key, G.turn === mySeat && i === sel); b.appendChild(sm);
+      b.setAttribute('aria-pressed', String(G.turn === mySeat && i === sel));
+      b.disabled = !canAct();
+      b.addEventListener('click', () => selectChip(i));
+      chipsEl.appendChild(b);
+    });
+  }
+
+  // 움직일 수 있는 말
+  for (const id in pieceEls) pieceEls[id].classList.remove('movable', 'selected');
+  enterBtn.classList.remove('movable', 'selected');
+  enterBtn.disabled = true;
+  if (canAct() && sel >= 0 && G.chips[sel]){
+    const key = G.chips[sel].key;
+    for (const from of legalFroms(mySeat, key)){
+      if (from === WAIT){ enterBtn.disabled = false; enterBtn.classList.add(preview && preview.from === WAIT ? 'selected' : 'movable'); continue; }
+      for (const p of atN(mySeat, from)) pieceEls[p.id].classList.add(preview && preview.from === from ? 'selected' : 'movable');
+    }
+  }
+  renderCharms();
+  renderRoomPanel();
+}
+function renderSeats(){
+  const box = $('seats'); box.textContent = '';
+  if (!G || !mode){
+    const row = document.createElement('div'); row.className = 'seatrow';
+    row.innerHTML = '<div class="who"><span class="tok s1" aria-hidden="true"></span><div class="who-text"><b>상대</b><span class="trait">시작을 기다리는 중</span></div></div>';
+    box.appendChild(row); return;
+  }
+  for (let s = 0; s < G.n; s++){
+    if (s === mySeat) continue;
+    const row = document.createElement('div'); row.className = 'seatrow' + (G.turn === s && G.winner === null ? ' turn' : '');
+    const who = document.createElement('div'); who.className = 'who';
+    const tok = document.createElement('span'); tok.className = 'tok s' + s; tok.setAttribute('aria-hidden', 'true');
+    const wt = document.createElement('div'); wt.className = 'who-text';
+    const b = document.createElement('b'); const tr = document.createElement('span'); tr.className = 'trait';
+    if (mode === 'solo'){ b.textContent = (run.stage + 1) + '판 · ' + STAGES[run.stage].name; tr.textContent = STAGES[run.stage].trait; }
+    else {
+      b.textContent = nameOf(s);
+      const ch = CH(s), ids = Object.keys(ch).filter(id => ch[id] > 0 && UPG[id]);
+      tr.textContent = ids.length ? ids.map(id => UPG[id].name + (ch[id] > 1 ? ' ×' + ch[id] : '')).join(', ') : '부적 없음';
+    }
+    wt.appendChild(b); wt.appendChild(tr); who.appendChild(tok); who.appendChild(wt);
+    const counts = document.createElement('div'); counts.className = 'counts';
+    counts.innerHTML = '<span>대기 <b></b></span><span>골인 <b></b></span>';
+    const bs = counts.querySelectorAll('b');
+    bs[0].textContent = waitingOf(s).length;
+    bs[1].textContent = pcs(s).filter(p => p.node === HOME).length + '/' + pcs(s).length;
+    row.appendChild(who); row.appendChild(counts);
+    if (G.turn === s && G.winner === null){ const tb = document.createElement('span'); tb.className = 'turnbadge'; tb.textContent = '차례'; row.appendChild(tb); }
+    box.appendChild(row);
+  }
+}
+function renderCharms(){
+  const ul = $('charms'); ul.textContent = '';
+  $('scoreBox').hidden = mode !== 'solo';
+  if (mode === 'solo' && run) $('scoreV').textContent = fmt(run.score);
+  $('charmTitle').textContent = mode === 'multi' ? '부적' : '내 부적';
+  const add = (seatCls, u, title) => {
+    const li = document.createElement('li');
+    const s = document.createElement('span'); s.className = 'seal' + (seatCls != null ? ' s' + seatCls : ''); s.textContent = u.seal; s.setAttribute('aria-hidden', 'true');
+    const b = document.createElement('b'); b.textContent = title;
+    const d = document.createElement('span'); d.className = 'd'; d.textContent = u.desc;
+    li.appendChild(s); li.appendChild(b); li.appendChild(d); ul.appendChild(li);
+  };
+  if (mode === 'multi' && NET.state && G){
+    let any = false;
+    for (let s = 0; s < G.n; s++){
+      const ch = CH(s);
+      for (const id of Object.keys(ch)){
+        if (!(ch[id] > 0) || !UPG[id]) continue;
+        any = true;
+        add(s, UPG[id], nameOf(s) + (s === mySeat ? ' (나)' : '') + ' · ' + UPG[id].name + (ch[id] > 1 ? ' ×' + ch[id] : '') + (UPG[id].catchup ? ' · 역전' : ''));
+      }
+    }
+    if (!any){ const li = document.createElement('li'); li.className = 'empty'; li.textContent = '이번 판은 부적 없이 해요.'; ul.appendChild(li); }
+    return;
+  }
+  const ids = run ? Object.keys(run.up).filter(k => run.up[k] > 0) : [];
+  if (!ids.length){ const li = document.createElement('li'); li.className = 'empty'; li.textContent = mode === 'solo' ? '판을 이기면 부적을 하나씩 얻어요.' : '혼자 원정에서는 판을 이길 때마다 부적을 하나씩 얻어요.'; ul.appendChild(li); return; }
+  for (const id of ids) add(null, UPG[id], UPG[id].name + (run.up[id] > 1 ? ' ×' + run.up[id] : ''));
+}
+
+// 윷판 클릭
+svg.addEventListener('click', e => {
+  if (!canAct()) return;
+  const pe = e.target.closest('.piece');
+  if (pe){
+    const p = G.pieces.find(q => q.id === pe.dataset.id);
+    if (!p) return;
+    if (preview && preview.sim.end === p.node && preview.from !== p.node){ confirmMove(); return; }
+    if (p.seat === mySeat) onPick(p.node);
+    return;
+  }
+  if (e.target.closest('[data-dest]')) confirmMove();
+});
+mainBtn.addEventListener('click', () => { if (phaseOf() === 'throw') doThrow(); else if (preview) confirmMove(); });
+rerollBtn.addEventListener('click', doReroll);
+enterBtn.addEventListener('click', () => onPick(WAIT));
+
+// ---------- 혼자 원정 ----------
+let aiRunning = false;
+async function aiTurn(){
+  if (aiRunning || mode !== 'solo') return;
+  aiRunning = true;
+  const tk = token, seat = 1, st = STAGES[run.stage];
+  await sleep(reduceMotion ? 150 : 520);
+  while (tk === token && G && G.winner === null && G.turn === seat){
+    const ph = phaseOf();
+    if (ph === 'throw'){
+      const ev = actThrow(seat, false);
+      if (!(await playNewEvents(tk))) break;
+      if ((ev.key === '빽도' || ev.key === '도') && rerollsLeft(seat) > 0){
+        actReroll(seat, G.chips.length - 1);
+        if (!(await playNewEvents(tk))) break;
+      }
+      settle(seat);
+      if (!(await playNewEvents(tk))) break;
+    } else if (ph === 'move'){
+      const best = aiChoose(seat, st.noise, st.capW, Math.random);
+      if (!best){ G.chips = []; settle(seat); if (!(await playNewEvents(tk))) break; continue; }
+      const key = G.chips[best.ci].key;
+      drawPreview(seat, simulate(seat, key, best.from, best.alt), best.from);
+      await sleep(reduceMotion ? 150 : 520);
+      if (tk !== token) break;
+      clearPreview();
+      const ev = actMove(seat, best.ci, best.from, best.alt);
+      if (ev && ev.trapped) run.score += 60;
+      settle(seat);
+      if (!(await playNewEvents(tk))) break;
+    } else break;
+    updateUI();
+  }
+  aiRunning = false;
+  if (tk === token && G) afterChange();
+}
+const MY_PIECES = [3, 3, 3, 4, 4, 5, 5];
+function startSolo(){
+  if (mode === 'multi') leaveRoom(true);
+  mode = 'solo'; mySeat = 0; token++;
+  run = { stage:0, score:0, up:{}, captures:0, ending:false };
+  G = null; buildPieces(); clearPreview(); renderTraps(); updateUI();
+  showPick('출발 전 부적 고르기', '첫 판에 가져갈 부적을 하나 고르세요. 판을 이길 때마다 하나씩 더 얻어요.', '혼자 원정');
+}
+function setupMatch(){
+  token++; busy = false; animating = false; aiRunning = false; closeModal();
+  const st = STAGES[run.stage];
+  run.ending = false;
+  // 판이 올라갈수록 내 말이 늘어나요 (부적이 쌓이는 만큼 어렵게)
+  G = newGame(2, Math.max(MY_PIECES[run.stage], 3)); G.trapOwner = 0;
+  G.pieces = G.pieces.filter(p => Number(p.id.slice(p.id.indexOf('p') + 1)) < (p.seat === 0 ? MY_PIECES[run.stage] : 3));
+  CH = seat => seat === 0 ? run.up : STAGES[run.stage].up;
+  if (hasC(0, 'head')){ const p = G.pieces.find(q => q.seat === 0); p.node = 3; p.trail = [1,2,3]; }
+  if (hasC(1, 'head')){ const p = G.pieces.find(q => q.seat === 1); if (hasC(0, 'head')){ p.node = 2; p.trail = [1,2]; } else { p.node = 3; p.trail = [1,2,3]; } }
+  const cand = [6,7,8,9,11,12,13,14,16,17,18,19,20,21,23,24,25,26,27,28].filter(x => !G.pieces.some(p => p.node === x));
+  for (let i = 0; i < 2*(run.up.trap || 0) && cand.length; i++){ const j = Math.floor(Math.random()*cand.length); G.traps.push(cand.splice(j, 1)[0]); }
+  lastSeq = G.seq;
+  buildPieces(); syncDisp(true); renderTraps(); clearPreview(); sel = -1;
+  toast((run.stage + 1) + '판 · ' + st.name + ': ' + st.trait, 2600);
+  afterChange();
+}
+function makeOffers(pool, n){ return weightedPick(pool, n, Math.random); }
+function stageEnd(won){
+  const st = STAGES[run.stage];
+  if (won){
+    const left = pcs(1).filter(p => p.node !== HOME).length;
+    const gain = 1000 + 120*left; run.score += gain; run.stage++;
+    updateUI();
+    if (run.stage >= STAGES.length){ run.score += 2000; soloEnd(true); return; }
+    showPick(josa(st.name, '을', '를') + ' 이겼어요', '+' + fmt(gain) + '점. 다음 판에 가져갈 부적을 하나 고르세요.', (run.stage + 1) + '판 · ' + josa(STAGES[run.stage].name, '이', '가') + ' 기다려요');
+  } else if ((run.up.life || 0) > 0){
+    run.up.life--; updateUI();
+    openModal('retry',
+      '<p class="eyebrow">두 번째 기회</p><h2></h2><p class="lead">두 번째 기회 부적을 써서 이 판을 처음부터 다시 해요.</p><div class="actions"><button class="btn primary" id="mRetry" type="button">이 판 다시 하기</button></div>',
+      s => { s.querySelector('h2').textContent = st.name + '에게 졌지만 아직 끝이 아니에요'; $('mRetry').addEventListener('click', setupMatch); });
+  } else soloEnd(false);
+}
+function soloEnd(cleared){
+  const st = STAGES[Math.min(run.stage, STAGES.length - 1)];
+  const best = Math.max(Number(lsGet('yutgil.best')) || 0, run.score);
+  lsSet('yutgil.best', String(best));
+  openModal('end',
+    '<p class="eyebrow">혼자 원정 종료</p><h2></h2><p class="big"><span id="mScore"></span><small>점</small></p><p class="lead" id="mStats"></p><p class="fine" id="mBest"></p>' +
+    '<div class="actions"><button class="btn primary" id="mAgain" type="button">다시 도전</button><button class="btn ghost" id="mHome" type="button">처음 화면</button></div>',
+    s => {
+      s.querySelector('h2').textContent = cleared ? '일곱 판 완주!' : st.name + '에게 졌어요';
+      $('mScore').textContent = fmt(run.score);
+      $('mStats').textContent = run.stage + '판 통과 · 잡은 말 ' + run.captures + '개 · 부적 ' + Object.values(run.up).reduce((a, b) => a + b, 0) + '개';
+      $('mBest').textContent = '이 기기 최고 점수 ' + fmt(best) + '점';
+      $('mAgain').addEventListener('click', startSolo);
+      $('mHome').addEventListener('click', () => { mode = null; run = null; G = null; token++; buildPieces(); clearPreview(); renderTraps(); setStatus('시작을 기다리는 중이에요.'); updateUI(); showHome(); });
+    });
+}
+
+// ---------- 창 ----------
+const modal = $('modal'), sheet = $('sheet');
+let modalKind = null;
+function openModal(kind, html, wire){ modalKind = kind; sheet.innerHTML = html; modal.hidden = false; if (wire) wire(sheet); const f = sheet.querySelector('input:not([readonly]), button'); if (f) f.focus({ preventScroll:true }); updateUI(); }
+function closeModal(){ modal.hidden = true; sheet.innerHTML = ''; modalKind = null; updateUI(); }
+function showPick(title, lead, eyebrow){
+  const offers = makeOffers(Object.keys(UPG).filter(id => !UPG[id].catchup && (UPG[id].stack || !run.up[id])), 3);
+  openModal('pick', '<p class="eyebrow"></p><h2></h2><p class="lead"></p><div class="offers" id="offers"></div>', s => {
+    s.querySelector('.eyebrow').textContent = eyebrow;
+    s.querySelector('h2').textContent = title;
+    s.querySelector('.lead').textContent = lead;
+    fillOffers(s.querySelector('#offers'), offers, id => { run.up[id] = (run.up[id] || 0) + 1; setupMatch(); }, id => run.up[id] || 0);
+  });
+}
+function fillOffers(box, offers, onPickId, owned){
+  for (const id of offers){
+    const u = UPG[id], b = document.createElement('button'); b.type = 'button'; b.className = 'offer';
+    const seal = document.createElement('span'); seal.className = 'seal'; seal.textContent = u.seal; seal.setAttribute('aria-hidden', 'true');
+    const nm = document.createElement('b'); const have = owned ? owned(id) : 0; nm.textContent = u.name + (have ? ' (지금 ' + have + '개)' : '');
+    const tier = u.catchup ? 'catchup' : (u.tier || 1);
+    b.classList.add('tier-' + tier);
+    const tg = document.createElement('span'); tg.className = 'tiertag'; tg.textContent = u.catchup ? '역전' : TIER_NAME[u.tier || 1];
+    nm.appendChild(tg);
+    const d = document.createElement('span'); d.className = 'd'; d.textContent = u.desc;
+    b.appendChild(seal); b.appendChild(nm); b.appendChild(d);
+    b.addEventListener('click', () => { box.querySelectorAll('button').forEach(x => x.disabled = true); onPickId(id); });
+    box.appendChild(b);
+  }
+}
+function showHome(){
+  const inGame = !!mode;
+  openModal('home',
+    '<p class="eyebrow">윷길</p><h2>윷 하나로 겨루는 한 판</h2>' +
+    '<p class="lead">혼자서는 일곱 상대를 차례로 이기는 원정을, 친구들과는 방을 만들어 2~4명이 한 윷판에서 겨뤄요.</p>' +
+    '<div class="actions"><button class="btn primary" id="mSolo" type="button">혼자 원정</button><button class="btn ghost" id="mFriends" type="button">친구와 하기</button>' +
+    '<button class="btn ghost" id="mResume" type="button" hidden>하던 판으로 돌아가기</button><button class="btn ghost" id="mRules" type="button">규칙 보기</button></div>' +
+    '<p class="fine" id="mNote"></p>',
+    s => {
+      $('mSolo').addEventListener('click', startSolo);
+      $('mFriends').addEventListener('click', () => {
+        if (mode === 'multi' && NET.state){ closeModal(); onServerState(NET.state, true); }
+        else showFriends('');
+      });
+      $('mRules').addEventListener('click', () => showRules(showHome));
+      const resume = $('mResume'); resume.hidden = !inGame || mode === 'multi'; resume.addEventListener('click', closeModal);
+      if (mode === 'multi') $('mFriends').textContent = '방 ' + NET.code + '으로 돌아가기';
+      if (!NET.api){ $('mFriends').disabled = true; $('mNote').textContent = NET.probed ? '친구와 하기는 Netlify에 올린 버전에서 열려요. 여기서는 혼자 원정만 할 수 있어요.' : '친구와 하기를 준비하는 중이에요.'; }
+      if (mode === 'solo') $('mNote').textContent = '혼자 원정을 새로 시작하면 지금 원정은 사라져요.';
+    });
+}
+function showRules(back){
+  openModal('rules',
+    '<p class="eyebrow">규칙</p><h2>윷놀이 기본</h2><ul class="rules">' +
+    '<li><b>도</b> 1칸, <b>개</b> 2칸, <b>걸</b> 3칸, <b>윷</b> 4칸, <b>모</b> 5칸, <b>빽도</b>는 1칸 뒤로. 윷과 모가 나오면 한 번 더 던져요.</li>' +
+    '<li>도 자리(참먹이 바로 다음 칸)에 있는 말이 빽도를 받으면 참먹이로 돌아가 바로 골인해요.</li>' +
+    '<li>던진 결과는 모두 써야 해요. 결과마다 움직일 말을 골라요. 말을 한 번 누르면 갈 곳이 보이고, 한 번 더 누르면 이동해요.</li>' +
+    '<li>다른 사람 말이 있는 칸에 멈추면 잡아서 출발점으로 보내고, 한 번 더 던져요.</li>' +
+    '<li>내 말끼리 같은 칸에 멈추면 업혀서 함께 움직여요. 잡힐 때도 함께 잡혀요.</li>' +
+    '<li>모서리나 한가운데에 딱 멈추면 다음 차례에 지름길로 꺾어요.</li>' +
+    '<li>오른쪽 아래 참먹이에서 출발해 시계 반대 방향으로 돌아요. 참먹이에 닿거나 지나가면 골인이고, 내 말을 모두 먼저 골인시키면 이겨요.</li>' +
+    '<li><b>부적 등급</b>: 일반, 희귀, 전설이 있어요. 후보는 일반이 가장 자주, 전설이 가장 드물게 나와요.</li>' +
+    '<li><b>혼자 원정 말 개수</b>: 1~3판은 3개, 4~5판은 4개, 6~7판은 5개로 늘어나요. 상대는 늘 3개예요.</li>' +
+    '<li><b>친구와 하기 증강</b>: 처음에 부적 하나를 고르고, 누군가 첫 골인을 했을 때와 골인을 하나 남겼을 때 모두 하나씩 더 골라요. 그때 가장 뒤처진 사람에게는 역전 부적 후보가 나와요.</li>' +
+    '</ul><div class="actions"><button class="btn primary" id="mBack" type="button">돌아가기</button></div>',
+    () => { $('mBack').addEventListener('click', () => { if (back) back(); else closeModal(); }); });
+}
+$('rulesBtn').addEventListener('click', () => showRules(null));
+$('homeBtn').addEventListener('click', showHome);
+
+// ---------- 친구와 하기 ----------
+const NET = { api:false, probed:false, code:null, pid:null, token:null, seat:-1, state:null, v:0, syncedSeq:0, inflight:false, dirty:false, timer:null, polling:false };
+async function api(method, body, query){
+  const url = '/api/room' + (query ? '?' + new URLSearchParams(query).toString() : '');
+  const res = await fetch(url, { method, headers:body ? { 'content-type':'application/json' } : undefined, body:body ? JSON.stringify(body) : undefined, cache:'no-store' });
+  let data = {};
+  try { data = await res.json(); } catch(e){}
+  if (!res.ok){ const err = new Error(data.error || '서버와 연결하지 못했어요.'); err.status = res.status; err.data = data; throw err; }
+  return data;
+}
+async function probeApi(){
+  try { const d = await api('GET', null, { ping:'1' }); return !!(d && d.ok); } catch(e){ return false; }
+}
+function saveSession(){ lsSet('yutgil.session', JSON.stringify({ code:NET.code, pid:NET.pid, token:NET.token })); }
+function inviteLink(code){ return location.origin + location.pathname + '?room=' + code; }
+function showFriends(prefill, errMsg){
+  const saved = lsGet('yutgil.name') || '';
+  openModal('friends',
+    '<p class="eyebrow">친구와 하기</p><h2>방을 만들거나 들어가세요</h2>' +
+    '<div class="field"><label for="fName">내 이름</label><input id="fName" maxlength="12" autocomplete="nickname" placeholder="12자 이내"></div>' +
+    '<button class="btn primary" id="fCreate" type="button">새 방 만들기</button>' +
+    '<div class="divider">또는 받은 방 코드로</div>' +
+    '<div class="row"><input id="fCode" class="code" maxlength="5" autocomplete="off" placeholder="방 코드" aria-label="방 코드"><button class="btn ghost small" id="fJoin" type="button">들어가기</button></div>' +
+    '<p class="err" id="fErr"></p>' +
+    '<div class="actions"><button class="btn ghost small" id="fBack" type="button">돌아가기</button></div>',
+    s => {
+      $('fName').value = saved;
+      $('fCode').value = prefill || '';
+      $('fErr').textContent = errMsg || '';
+      const getName = () => { const n = $('fName').value.trim().slice(0, 12); if (!n){ $('fErr').textContent = '이름을 먼저 적어 주세요.'; $('fName').focus(); return null; } lsSet('yutgil.name', n); return n; };
+      const lock = on => { $('fCreate').disabled = on; $('fJoin').disabled = on; };
+      $('fCreate').addEventListener('click', async () => {
+        const name = getName(); if (!name) return;
+        lock(true); $('fErr').textContent = '';
+        try { const d = await api('POST', { action:'create', name }); enterRoom(d); }
+        catch(e){ $('fErr').textContent = e.message; lock(false); }
+      });
+      const join = async () => {
+        const name = getName(); if (!name) return;
+        const code = $('fCode').value.trim().toUpperCase();
+        if (!/^[A-Z0-9]{5}$/.test(code)){ $('fErr').textContent = '방 코드는 영문과 숫자 5자예요.'; return; }
+        lock(true); $('fErr').textContent = '';
+        try { const d = await api('POST', { action:'join', code, name }); enterRoom(d); }
+        catch(e){ $('fErr').textContent = e.message; lock(false); }
+      };
+      $('fJoin').addEventListener('click', join);
+      $('fCode').addEventListener('keydown', e => { if (e.key === 'Enter') join(); });
+      $('fBack').addEventListener('click', showHome);
+      if (prefill) $('fName').focus({ preventScroll:true });
+    });
+}
+function enterRoom(d){
+  if (mode === 'solo'){ run = null; }
+  mode = 'multi'; token++; G = null; buildPieces(); clearPreview(); renderTraps();
+  const code = d.code || d.state.code;
+  if (P2P.peer && NET.code !== code) p2pStop();
+  NET.code = code; NET.pid = d.pid; NET.token = d.token; NET.v = 0; NET.state = null; NET.syncedSeq = 0; NET.inflight = false; NET.dirty = false; NET.behindSince = 0;
+  saveSession();
+  try { history.replaceState(null, '', location.pathname + '?room=' + NET.code); } catch(e){}
+  onServerState(d.state, true);
+  startPolling();
+  p2pStart();
+}
+async function rejoin(sess){
+  const d = await api('POST', { action:'join', code:sess.code, pid:sess.pid, token:sess.token, name:lsGet('yutgil.name') || '' });
+  enterRoom(d);
+}
+function leaveRoom(silent){
+  const code = NET.code, pid = NET.pid, tk = NET.token;
+  stopPolling(); p2pStop();
+  if (code && pid) api('POST', { action:'leave', code, pid, token:tk }).catch(() => {});
+  lsDel('yutgil.session');
+  NET.code = null; NET.pid = null; NET.token = null; NET.state = null; NET.v = 0; NET.seat = -1;
+  try { history.replaceState(null, '', location.pathname); } catch(e){}
+  if (!silent){ mode = null; G = null; token++; mySeat = 0; buildPieces(); clearPreview(); setStatus('시작을 기다리는 중이에요.'); updateUI(); showHome(); }
+}
+function startPolling(){ NET.polling = true; schedulePoll(1200); }
+function stopPolling(){ NET.polling = false; clearTimeout(NET.timer); }
+function schedulePoll(ms){ clearTimeout(NET.timer); if (NET.polling && NET.code) NET.timer = setTimeout(poll, ms); }
+// 다른 사람과 바로 연결돼 있으면 서버 확인은 가끔만 해요(안전장치). 연결이 없으면 자주 확인해요.
+function pollDelay(){
+  const s = NET.state;
+  if (!s) return 2000;
+  const direct = p2pAllConnected();
+  if (s.phase === 'play' && G && G.augment) return direct ? 3000 : 1200;
+  if (s.phase === 'play' && G && G.turn === mySeat && G.winner === null) return 5000;
+  if (s.phase === 'over') return 3000;
+  return direct ? 4000 : 1200;
+}
+async function poll(){
+  if (!NET.polling || !NET.code) return;
+  if (document.hidden){ schedulePoll(4000); return; }
+  try {
+    const d = await api('GET', null, { code:NET.code, v:String(NET.v) });
+    if (d.state) await onServerState(d.state, false);
+  } catch(e){
+    if (e.status === 404){ stopPolling(); leaveRoom(true); mode = null; G = null; buildPieces(); updateUI(); showFriends('', '방이 사라졌어요. 새 방을 만들어 주세요.'); return; }
+  }
+  schedulePoll(pollDelay());
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && NET.polling) schedulePoll(50); });
+
+let remoteQueue = [], remoteRunning = false;
+// st: 서버가 확인한 방 상태. force: 내가 방금 서버에 요청해서 받은 응답. fix: 다른 사람이 "서버 기준으로 다시 맞추라"고 보낸 상태.
+async function onServerState(st, force, fix){
+  if (!st) return;
+  if (!force && (fix ? st.v < NET.v : st.v <= NET.v)) return;
+  // 내 동작을 서버로 보내는 중이거나 화면에 보여주는 중이면, 그 사이에 받은 상태는 다음 확인 때 다시 받아요.
+  if (!force && (st.phase === 'play' || st.phase === 'over') && (NET.inflight || NET.dirty || busy)) return;
+  NET.state = st; NET.v = st.v;
+  const seat = st.players.findIndex(p => p.pid === NET.pid);
+  if (seat < 0){ leaveRoom(true); mode = null; G = null; buildPieces(); updateUI(); showFriends('', '방에서 나가졌어요.'); return; }
+  NET.seat = seat; mySeat = seat;
+  p2pSync();
+  CH = s => (G && G.charms && G.charms[s]) || {};
+  if (st.phase === 'lobby'){
+    if (G){ G = null; token++; buildPieces(); clearPreview(); }
+    setStatus('친구들이 모이길 기다리는 중이에요.');
+    showLobby(); return;
+  }
+  if (st.phase === 'charm'){
+    if (G){ G = null; token++; buildPieces(); clearPreview(); }
+    setStatus('부적을 고르는 중이에요.');
+    const me = st.players[seat];
+    if (!me.charm) { if (modalKind !== 'charm') showCharmPick(); }
+    else showCharmWait();
+    return;
+  }
+  // play 또는 over
+  if (!st.game) return;
+  if (!G || G.gid !== st.game.gid){ NET.behindSince = 0; loadGame(st.game); }
+  else if (st.game.seq > G.seq){ NET.behindSince = 0; await applyRemote(st.game); }
+  else if (st.game.seq === G.seq){
+    NET.behindSince = 0;
+    if (st.game.rev && G.rev && st.game.rev !== G.rev) loadGame(st.game);   // 순번은 같은데 내용이 다르면 서버 기준으로 맞춰요
+  } else {
+    // 서버가 내 화면보다 뒤처져 있어요. 바로 연결로 먼저 받은 내용이 아직 서버에 도착하지 않은 경우라 잠깐 기다려요.
+    if (force || fix) loadGame(st.game);
+    else if (!NET.behindSince) NET.behindSince = Date.now();
+    else if (Date.now() - NET.behindSince > 6000){ NET.behindSince = 0; loadGame(st.game); }
+  }
+  if (modalKind === 'lobby' || modalKind === 'charm' || modalKind === 'charmwait') closeModal();
+  if (!remoteRunning) afterChange();
+}
+function loadGame(game){
+  token++; busy = false; animating = false; remoteQueue = []; remoteRunning = false;
+  G = game; lastSeq = G.seq; NET.syncedSeq = G.seq;
+  buildPieces(); syncDisp(true); renderTraps(); clearPreview(); sel = -1;
+  if (modalKind === 'lobby' || modalKind === 'charm' || modalKind === 'charmwait' || modalKind === 'over') closeModal();
+  toast(G.turn === mySeat ? '내가 먼저 던져요.' : josa(nameOf(G.turn), '이', '가') + ' 먼저 던져요.', 2200);
+}
+async function applyRemote(game){
+  NET.seenSeq = Math.max(NET.seenSeq || 0, game.seq);
+  remoteQueue.push(game);
+  if (remoteRunning) return;
+  remoteRunning = true;
+  while (remoteQueue.length){
+    const snap = remoteQueue.shift(); const tk = token;
+    animating = true; clearPreview(); sel = -1; updateUI();
+    const evs = (snap.events || []).filter(e => e.seq > lastSeq);
+    for (const e of evs){ await animateEvent(e, tk); if (tk !== token) break; lastSeq = e.seq; }
+    animating = false;
+    if (tk !== token) break;
+    G = snap; lastSeq = G.seq; NET.syncedSeq = G.seq;
+    syncDisp(); renderTraps();
+  }
+  remoteRunning = false;
+  afterChange();
+}
+function pushGame(){ NET.dirty = true; if (!NET.inflight) flush(); }
+async function flush(){
+  NET.inflight = true;
+  let behindTries = 0;
+  while (NET.dirty && NET.code && G){
+    NET.dirty = false;
+    const snap = JSON.parse(JSON.stringify(G));
+    p2pSend({ type:'game', game:snap });   // 바로 연결된 친구들에게는 서버 확인을 기다리지 않고 먼저 보내요
+    try {
+      const d = await api('POST', { action:'update', code:NET.code, pid:NET.pid, token:NET.token, baseSeq:NET.syncedSeq, game:snap });
+      NET.syncedSeq = snap.seq; behindTries = 0;
+      if (d.state){ NET.state = d.state; NET.v = d.state.v; p2pSend({ type:'state', state:d.state }); }
+    } catch(e){
+      const sg = e.data && e.data.state && e.data.state.game;
+      if (e.status === 409 && sg && G && sg.gid === G.gid && sg.seq < NET.syncedSeq && behindTries < 15){
+        // 앞사람이 보낸 내용이 아직 서버에 도착하지 않았어요. 잠깐 기다렸다가 다시 보내요.
+        behindTries++; NET.dirty = true; await sleep(300); continue;
+      }
+      if (e.status === 409 && e.data && e.data.state){
+        NET.inflight = false; NET.dirty = false;
+        toast('다른 친구 화면과 진행을 다시 맞췄어요.');
+        p2pSend({ type:'fix', state:e.data.state });
+        G = null; await onServerState(e.data.state, true);
+        return;
+      }
+      if (e.status === 404 || e.status === 403){ NET.inflight = false; leaveRoom(true); mode = null; G = null; buildPieces(); updateUI(); showFriends('', e.message); return; }
+      NET.dirty = true; toast('연결이 불안정해요. 다시 보내는 중이에요.'); await sleep(1500);
+    }
+  }
+  NET.inflight = false;
+  if (NET.state && NET.state.phase === 'over' && G && G.winner !== null) showOver();
+}
+// 방 서버에 요청하고, 받은 상태를 바로 연결된 친구들에게도 전해요.
+// 서버가 아직 내 화면보다 뒤처져 있으면(바로 연결로 먼저 받은 경우) 잠깐 기다렸다가 다시 보내요.
+async function roomCall(action, extra){
+  for (let i = 0; ; i++){
+    try {
+      const d = await api('POST', Object.assign({ action, code:NET.code, pid:NET.pid, token:NET.token }, extra || {}));
+      if (d.state){ p2pSend({ type:'state', state:d.state }); await onServerState(d.state, true); }
+      return d;
+    } catch(e){
+      const sg = e.data && e.data.state && e.data.state.game;
+      if (e.status === 409 && sg && G && sg.gid === G.gid && sg.seq < G.seq && i < 12){ await sleep(350); continue; }
+      throw e;
+    }
+  }
+}
+async function hostAction(action, extra){
+  try { await roomCall(action, extra); return true; }
+  catch(e){ toast(e.message, 2600); if (e.data && e.data.state) await onServerState(e.data.state, true); return false; }
+}
+
+// ---------- 브라우저끼리 바로 연결 (빠른 전달) ----------
+// 서버가 계속 기준이 되고, 바로 연결은 바뀐 내용을 더 빨리 알려주는 지름길이에요.
+// 연결이 안 되는 환경이면 서버 확인만으로 게임이 그대로 돌아가요.
+const P2P = { peer:null, id:null, conns:{}, ready:false, pending:{}, tries:0, failed:false };
+function p2pStart(){
+  if (P2P.peer || !NET.code) return;
+  if (typeof window.Peer !== 'function'){ if (P2P.tries++ < 10) setTimeout(p2pStart, 1000); else { P2P.failed = true; renderRoomPanel(); } return; }
+  const id = 'yutgil-' + NET.code + '-' + Math.random().toString(36).slice(2, 10);
+  let peer;
+  try { peer = new window.Peer(id, Object.assign({ debug:0 }, window.YUTGIL_PEER || {})); } catch(e){ P2P.failed = true; return; }
+  P2P.peer = peer; P2P.id = id; P2P.failed = false;
+  peer.on('open', () => {
+    P2P.ready = true; renderRoomPanel();
+    api('POST', { action:'peer', code:NET.code, pid:NET.pid, token:NET.token, peer:id })
+      .then(d => { if (d.state){ p2pSend({ type:'state', state:d.state }); onServerState(d.state, false); } })
+      .catch(() => {});
+    p2pSync();
+  });
+  peer.on('connection', c => p2pAttach(c, c.metadata && c.metadata.pid));   // 상대가 걸어온 연결: 상대가 보낸 자기 pid
+  peer.on('disconnected', () => { setTimeout(() => { try { if (P2P.peer === peer && !peer.destroyed) peer.reconnect(); } catch(e){} }, 1500); });
+  peer.on('error', () => { renderRoomPanel(); });
+}
+function p2pStop(){
+  for (const k in P2P.conns){ try { P2P.conns[k].close(); } catch(e){} }
+  P2P.conns = {}; P2P.pending = {}; P2P.ready = false; P2P.tries = 0;
+  if (P2P.peer){ try { P2P.peer.destroy(); } catch(e){} }
+  P2P.peer = null; P2P.id = null;
+}
+function p2pAttach(c, pid){
+  if (typeof pid !== 'string'){ try { c.close(); } catch(e){} return; }
+  c.on('open', () => {
+    const old = P2P.conns[pid];
+    if (old && old !== c){ try { old.close(); } catch(e){} }
+    P2P.conns[pid] = c; delete P2P.pending[c.peer];
+    renderRoomPanel();
+    if (NET.state) c.send({ type:'state', state:NET.state });
+  });
+  c.on('data', msg => onPeerMsg(msg));
+  c.on('close', () => { if (P2P.conns[pid] === c) delete P2P.conns[pid]; renderRoomPanel(); });
+  c.on('error', () => {});
+}
+function p2pSync(){
+  if (!P2P.ready || !P2P.peer || !NET.state) return;
+  for (const p of NET.state.players){
+    if (p.pid === NET.pid || !p.peer) continue;
+    const c = P2P.conns[p.pid];
+    if (c && c.open && c.peer === p.peer) continue;
+    if (NET.pid > p.pid) continue;   // 두 사람 중 한쪽만 연결을 시작해요
+    if (P2P.pending[p.peer]) continue;
+    P2P.pending[p.peer] = true;
+    try { p2pAttach(P2P.peer.connect(p.peer, { reliable:true, serialization:'json', metadata:{ pid:NET.pid } }), p.pid); } catch(e){}   // 내가 건 연결: 상대 pid로 기억해요
+    const target = p.peer;
+    setTimeout(() => { delete P2P.pending[target]; }, 8000);
+  }
+}
+function p2pConnectedCount(){ let n = 0; for (const k in P2P.conns) if (P2P.conns[k].open) n++; return n; }
+function p2pAllConnected(){ return !!(NET.state && NET.state.players.length > 1 && p2pConnectedCount() >= NET.state.players.length - 1); }
+function p2pSend(msg){ for (const k in P2P.conns){ const c = P2P.conns[k]; if (c.open){ try { c.send(msg); } catch(e){} } } }
+function onPeerMsg(msg){
+  if (!msg || typeof msg !== 'object' || mode !== 'multi') return;
+  if ((msg.type === 'state' || msg.type === 'fix') && msg.state && msg.state.code === NET.code){ onServerState(msg.state, false, msg.type === 'fix'); return; }
+  if (msg.type === 'game' && msg.game && G && msg.game.gid === G.gid && NET.state && NET.state.phase === 'play'){
+    if (NET.inflight || NET.dirty || busy) return;
+    if (msg.game.seq > G.seq) applyRemote(msg.game);
+  }
+}
+
+function showLobby(){
+  const st = NET.state; if (!st) return;
+  if (modalKind !== 'lobby'){
+    openModal('lobby',
+      '<p class="eyebrow">친구와 하기 · 대기실</p><p class="roomcode" id="lbCode"></p>' +
+      '<p class="lead">친구에게 방 코드나 아래 링크를 보내 주세요. 2~4명이 함께할 수 있어요.</p>' +
+      '<div class="share"><input id="lbLink" readonly aria-label="초대 링크"><button class="btn ghost small" id="lbCopy" type="button">링크 복사</button></div>' +
+      '<ul class="plist" id="lbPlayers"></ul>' +
+      '<div class="setrow"><span>사람마다 말</span><div class="seg" id="lbPieces"><button type="button" data-v="2">2개</button><button type="button" data-v="3">3개</button><button type="button" data-v="4">4개</button></div></div>' +
+      '<div class="setrow"><span>부적과 증강</span><div class="seg" id="lbCharms"><button type="button" data-v="1">켜기</button><button type="button" data-v="0">끄기</button></div></div>' +
+      '<p class="fine">켜면 처음에 부적 하나를 고르고, 첫 골인 때와 누군가 골인을 하나 남겼을 때 하나씩 더 골라요. 가장 뒤처진 사람에게는 역전 부적이 나와요.</p>' +
+      '<p class="fine" id="lbNote"></p>' +
+      '<div class="actions"><button class="btn primary" id="lbStart" type="button">시작하기</button><button class="btn ghost small" id="lbLeave" type="button">방 나가기</button></div>',
+      () => {
+        $('lbCopy').addEventListener('click', () => copyText($('lbLink'), $('lbCopy')));
+        $('lbPieces').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || NET.seat !== 0) return; hostAction('settings', { settings:{ pieces:Number(b.dataset.v), charms:NET.state.settings.charms } }); });
+        $('lbCharms').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || NET.seat !== 0) return; hostAction('settings', { settings:{ pieces:NET.state.settings.pieces, charms:b.dataset.v === '1' } }); });
+        $('lbStart').addEventListener('click', async () => { $('lbStart').disabled = true; await hostAction('start'); if ($('lbStart')) $('lbStart').disabled = false; });
+        $('lbLeave').addEventListener('click', () => leaveRoom(false));
+      });
+  }
+  const isHost = NET.seat === 0;
+  $('lbCode').textContent = st.code;
+  $('lbLink').value = inviteLink(st.code);
+  const ul = $('lbPlayers'); ul.textContent = '';
+  st.players.forEach((p, s) => {
+    const li = document.createElement('li');
+    const t = document.createElement('span'); t.className = 'tok s' + s; t.setAttribute('aria-hidden', 'true');
+    const nm = document.createElement('span'); nm.textContent = p.name;
+    const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = [s === 0 ? '방장' : '', s === NET.seat ? '나' : ''].filter(Boolean).join(' · ');
+    li.appendChild(t); li.appendChild(nm); li.appendChild(tag); ul.appendChild(li);
+  });
+  $('lbPieces').querySelectorAll('button').forEach(b => { b.setAttribute('aria-pressed', String(Number(b.dataset.v) === st.settings.pieces)); b.disabled = !isHost; });
+  $('lbCharms').querySelectorAll('button').forEach(b => { b.setAttribute('aria-pressed', String((b.dataset.v === '1') === !!st.settings.charms)); b.disabled = !isHost; });
+  $('lbStart').hidden = !isHost;
+  $('lbStart').disabled = st.players.length < 2;
+  $('lbNote').textContent = isHost ? (st.players.length < 2 ? '한 명 이상 더 들어오면 시작할 수 있어요.' : st.players.length + '명이 모였어요. 준비되면 시작하세요.') : '방장이 시작하길 기다리는 중이에요.';
+}
+function showCharmPick(){
+  const st = NET.state, offers = (st.offers && st.offers[NET.seat]) || [];
+  openModal('charm', '<p class="eyebrow">친구와 하기</p><h2>이번 판에 가져갈 부적</h2><p class="lead">하나를 고르세요. 다른 사람이 뭘 골랐는지는 시작하면 보여요.</p><div class="offers" id="offers"></div><p class="err" id="cErr"></p>', s => {
+    fillOffers(s.querySelector('#offers'), offers, async id => {
+      try { await roomCall('charm', { charm:id }); }
+      catch(e){ $('cErr').textContent = e.message; s.querySelectorAll('.offer').forEach(x => x.disabled = false); }
+    });
+  });
+}
+function showCharmWait(){
+  const st = NET.state;
+  if (modalKind !== 'charmwait') openModal('charmwait', '<p class="eyebrow">친구와 하기</p><h2>다른 사람들이 고르는 중이에요</h2><ul class="plist" id="cwList"></ul>', null);
+  const ul = $('cwList'); ul.textContent = '';
+  st.players.forEach((p, s) => {
+    const li = document.createElement('li');
+    const t = document.createElement('span'); t.className = 'tok s' + s; t.setAttribute('aria-hidden', 'true');
+    const nm = document.createElement('span'); nm.textContent = p.name + (s === NET.seat ? ' (나)' : '');
+    const ok = document.createElement('span'); ok.className = 'ok' + (p.charm ? ' done' : ''); ok.textContent = p.charm ? '골랐어요' : '고르는 중';
+    li.appendChild(t); li.appendChild(nm); li.appendChild(ok); ul.appendChild(li);
+  });
+}
+let augShown = 0;   // 지금 띄워 둔 증강 라운드 번호 (같은 창을 다시 그리지 않으려고)
+function showAugment(){
+  const a = G && G.augment; if (!a) return;
+  const under = a.under.includes(mySeat);
+  if (!a.picks[mySeat]){
+    if (modalKind === 'augment' && augShown === a.round) return;
+    augShown = a.round;
+    openModal('augment', '<p class="eyebrow"></p><h2></h2><p class="lead"></p><div class="offers" id="offers"></div><p class="err" id="aErr"></p>', s => {
+      s.querySelector('.eyebrow').textContent = '증강 라운드 ' + a.round + (under ? ' · 역전 후보' : '');
+      s.querySelector('h2').textContent = under ? '역전 부적 하나를 고르세요' : '부적 하나를 더 고르세요';
+      s.querySelector('.lead').textContent = (a.round === 1 ? '첫 골인이 나왔어요. ' : '골인을 하나 남긴 사람이 나왔어요. ') +
+        (under ? '지금 가장 뒤처져 있어서 더 센 부적이 나왔어요.' : '고른 부적은 이번 판이 끝날 때까지 가져가요.');
+      fillOffers(s.querySelector('#offers'), a.offers[mySeat], async id => {
+        try { await roomCall('augment', { charm:id }); }
+        catch(e){ if ($('aErr')) $('aErr').textContent = e.message; s.querySelectorAll('.offer').forEach(x => x.disabled = false); }
+      }, id => cnt(mySeat, id));
+    });
+    return;
+  }
+  if (modalKind !== 'augwait'){
+    openModal('augwait', '<p class="eyebrow" id="awRound"></p><h2>다른 사람들이 고르는 중이에요</h2><ul class="plist" id="awList"></ul>' +
+      '<button class="btn ghost small" id="awForce" type="button" hidden>기다리지 않고 남은 사람은 무작위로 정하기</button>', () => {
+      $('awForce').addEventListener('click', async () => { $('awForce').disabled = true; await hostAction('skip'); if ($('awForce')) $('awForce').disabled = false; });
+    });
+  }
+  $('awRound').textContent = '증강 라운드 ' + a.round;
+  const ul = $('awList'); ul.textContent = '';
+  for (let s = 0; s < G.n; s++){
+    const li = document.createElement('li');
+    const t = document.createElement('span'); t.className = 'tok s' + s; t.setAttribute('aria-hidden', 'true');
+    const nm = document.createElement('span'); nm.textContent = nameOf(s) + (s === mySeat ? ' (나)' : '');
+    const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = a.under.includes(s) ? '역전 후보' : '';
+    const ok = document.createElement('span'); ok.className = 'ok' + (a.picks[s] ? ' done' : ''); ok.textContent = a.picks[s] ? '골랐어요' : '고르는 중';
+    li.appendChild(t); li.appendChild(nm); li.appendChild(tag); li.appendChild(ok); ul.appendChild(li);
+  }
+  $('awForce').hidden = !(NET.seat === 0 && a.picks.some(p => !p));
+}
+function showOver(){
+  if (!G || G.winner === null) return;
+  const isHost = NET.seat === 0, w = G.winner;
+  openModal('over',
+    '<p class="eyebrow">판이 끝났어요</p><h2></h2><p class="lead" id="ovLead"></p>' +
+    '<div class="actions"><button class="btn primary" id="ovAgain" type="button">한 판 더</button><button class="btn ghost small" id="ovView" type="button">윷판 보기</button><button class="btn ghost small" id="ovLeave" type="button">방 나가기</button></div><p class="fine" id="ovNote"></p>',
+    s => {
+      s.querySelector('h2').textContent = w === mySeat ? '내가 이겼어요!' : josa(nameOf(w), '이', '가') + ' 이겼어요';
+      const parts = [];
+      for (let i = 0; i < G.n; i++) parts.push(nameOf(i) + ' 골인 ' + pcs(i).filter(p => p.node === HOME).length + '/' + pcs(i).length);
+      $('ovLead').textContent = parts.join(' · ');
+      $('ovAgain').hidden = !isHost;
+      $('ovNote').textContent = isHost ? '한 판 더를 누르면 모두 대기실로 돌아가요.' : '방장이 한 판 더를 누르면 대기실로 돌아가요.';
+      $('ovAgain').addEventListener('click', () => hostAction('reset'));
+      $('ovView').addEventListener('click', closeModal);
+      $('ovLeave').addEventListener('click', () => leaveRoom(false));
+    });
+}
+function renderRoomPanel(){
+  const panel = $('roomPanel');
+  panel.hidden = mode !== 'multi' || !NET.code;
+  if (panel.hidden) return;
+  $('rpCode').textContent = NET.code;
+  const link = inviteLink(NET.code);
+  if ($('rpLink').value !== link) $('rpLink').value = link;
+  const others = NET.state ? NET.state.players.length - 1 : 0, n = p2pConnectedCount();
+  let text, st;
+  if (others <= 0){ text = '친구가 들어오면 바로 연결을 시도해요.'; st = 'wait'; }
+  else if (n >= others){ text = '실시간 연결됨 · ' + others + '명과 바로 주고받아요.'; st = 'ok'; }
+  else if (P2P.failed || !P2P.peer){ text = '서버를 거쳐 주고받아요. 조금 늦게 보일 수 있어요.'; st = 'slow'; }
+  else { text = '실시간 연결 ' + n + '/' + others + '명 · 나머지는 서버를 거쳐요.'; st = n ? 'part' : 'slow'; }
+  $('rpNetText').textContent = text;
+  $('rpDot').className = 'netdot ' + st;
+}
+async function copyText(input, btn){
+  const text = input.value;
+  try { await navigator.clipboard.writeText(text); btn.textContent = '복사했어요'; }
+  catch(e){ input.focus(); input.select(); btn.textContent = '선택했어요. 복사해 주세요'; }
+  setTimeout(() => { btn.textContent = '링크 복사'; }, 1800);
+}
+$('rpCopy').addEventListener('click', () => copyText($('rpLink'), $('rpCopy')));
+$('rpLeave').addEventListener('click', () => leaveRoom(false));
+let skipArmed = false, skipTimer = null;
+function resetSkipConfirm(){ skipArmed = false; clearTimeout(skipTimer); skipBtn.textContent = '이 차례 넘기기'; skipBtn.classList.remove('warn'); }
+skipBtn.addEventListener('click', async () => {
+  if (!skipArmed){ skipArmed = true; skipBtn.textContent = '한 번 더 누르면 넘겨요'; skipBtn.classList.add('warn'); skipTimer = setTimeout(resetSkipConfirm, 3000); return; }
+  resetSkipConfirm(); skipBtn.disabled = true;
+  await hostAction('skip');
+  skipBtn.disabled = false;
+});
+
+// 연결 상태 확인용 (브라우저 개발자 도구에서 yutgilInfo()로 볼 수 있어요)
+window.yutgilInfo = () => ({ mode, seq:G ? G.seq : -1, seen:Math.max(G ? G.seq : -1, (G && NET.seenSeq) || -1), turn:G ? G.turn : -1, directPeers:p2pConnectedCount(), roomVersion:NET.v });
+
+// ---------- 시작 ----------
+updateUI();
+showHome();
+(async () => {
+  NET.api = await probeApi(); NET.probed = true;
+  if (modalKind === 'home') showHome();
+  if (!NET.api) return;
+  const urlCode = (new URLSearchParams(location.search).get('room') || '').toUpperCase();
+  let sess = null; try { sess = JSON.parse(lsGet('yutgil.session') || 'null'); } catch(e){}
+  if (sess && sess.code && (!urlCode || urlCode === sess.code)){
+    try { await rejoin(sess); return; } catch(e){ lsDel('yutgil.session'); }
+  }
+  if (urlCode) showFriends(urlCode);
+})();
+})();
+</script>
+</body>
+</html>

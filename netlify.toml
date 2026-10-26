@@ -1,0 +1,5 @@
+# 윷길 Netlify 설정
+# public 폴더가 게임 화면이고, netlify/functions 폴더의 room.mjs가 친구와 하기 방 서버(/api/room)예요.
+[build]
+  publish = "public"
+  functions = "netlify/functions"

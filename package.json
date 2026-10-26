@@ -1,0 +1,9 @@
+{
+  "name": "yutgil",
+  "version": "1.0.0",
+  "private": true,
+  "description": "윷길: 혼자 원정과 친구와 하기를 지원하는 윷놀이 웹 게임",
+  "dependencies": {
+    "@netlify/blobs": "^10.7.13"
+  }
+}
